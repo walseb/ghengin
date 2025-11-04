@@ -43,14 +43,6 @@ allow-newer:
     linear-apecs:*,
     typelits-witnesses:*
 
-source-repository-package
-  type:     git
-  location: https://github.com/alt-romes/reference-counting.git
-
-source-repository-package
-  type:     git
-  location: https://gitlab.com/sheaf/fir.git
-
 -----------------------------
 -- Other ......... patches --
 -----------------------------
