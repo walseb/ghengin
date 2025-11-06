@@ -34,8 +34,8 @@ common common-flags
 
     cpp-options:
         -DDEBUG
-        -- -DDEBUG_TRACE
-        -- -DTHINGS_ARE_GOING_THAT_BAD
+        -DDEBUG_TRACE
+        -DTHINGS_ARE_GOING_THAT_BAD
 
   else
     ghc-options: -O2 -threaded
