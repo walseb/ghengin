@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE CPP #-}
 module Ghengin.Core.Prelude
   (
   -- * Re-exports
@@ -201,11 +200,7 @@ vec2l = Unsafe.toLinear V.toList
 
 assertM :: Monad m => String -> Bool -> m ()
 {-# INLINE assertM #-}
-#ifdef DEBUG
 assertM s b = if b then pure () else error ("Failed assertion: " ++ s)
-#else
-assertM _ _ = pure ()
-#endif
 
 unsafeUse :: Monad m => a ⊸ (a -> m ()) %l -> m a
 unsafeUse x f = Unsafe.toLinear (\y -> f y >> pure y) x

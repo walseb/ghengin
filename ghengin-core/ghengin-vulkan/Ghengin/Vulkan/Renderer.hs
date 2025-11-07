@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -245,18 +244,13 @@ validationLayers = [
 -- We must be careful: if we're releasing our game bundled with the dynamic
 -- libraries (e.g. using ghengin-dist-macos), we cannot use a validation layer
 -- because those aren't bundled.
-#ifdef DEBUG
                     "VK_LAYER_KHRONOS_validation"
-#endif
                    ]
 
 deviceExtensions :: Vector ByteString
 deviceExtensions = [ Vk.KHR_SWAPCHAIN_EXTENSION_NAME
 
                      -- required at least from 1.3 with MoltenVk
-#if defined(darwin_HOST_OS)
-                   , Vk.KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-#endif
                    ]
 
 rateFn :: Vk.SurfaceKHR -> DeviceRateFunction

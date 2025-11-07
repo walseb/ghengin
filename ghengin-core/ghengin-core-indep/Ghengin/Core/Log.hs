@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-|
    Ghengin logging capabilities.
@@ -16,11 +15,9 @@ import System.Log.FastLogger
 import qualified Prelude (take, return)
 
 
-#ifdef THINGS_ARE_GOING_THAT_BAD
 -- In that case we always flush and use BS.putStr
 import qualified Data.ByteString as BS
 import qualified System.IO
-#endif
 
 data Logger
   = Logger { _log :: FastLogger
@@ -52,54 +49,34 @@ log msg = getLogger >>= \(Ur logger) -> G.do
       leading_syms = Prelude.take (logger._depth*2) (cycle ['│',' '])
       full_msg = toLogStr leading_syms <> toLogStr msg <> toLogStr "\n"
   liftSystemIO $
-#ifndef THINGS_ARE_GOING_THAT_BAD
     logger._log full_msg
-#else
-    do BS.putStr (fromLogStr full_msg); !_ <- System.IO.hFlush System.IO.stdout; Prelude.return ()
-#endif
 
 -- | Log if debug level (@-DDEBUG@) is set
 logD :: HasLogger m => LogStr -> m ()
 {-# INLINE logD #-}
-#ifdef DEBUG
 logD = log
-#else
-logD = const (pure ())
-#endif
 
 -- | Log and increase logging depth until action is left if debug level
 -- (@-DDEBUG@) is set
 enterD :: HasLogger m => LogStr -> m a ⊸ m a
 {-# INLINE enterD #-}
-#ifdef DEBUG
 enterD msg ma = G.do
   () <- log (toLogStr "Entering: " <> msg)
   !a <- withLevelUp ma
   () <- log "Done."
   pure a
-#else
-enterD _ x = x
-#endif
 
 -- | Log @message(show arg)@ and increase logging depth until action is left if debug level
 -- (@-DDEBUG@) is set
 enterDA :: HasLogger m => Show b => LogStr -> b -> m a ⊸ m a
 {-# INLINE enterDA #-}
-#ifdef DEBUG
 enterDA msg arg ma = G.do
   () <- log (toLogStr "Entering: " <> msg <> toLogStr ("(" <> show arg <> ")"))
   !a <- withLevelUp ma
   () <- log "Done."
   pure a
-#else
-enterDA _ _ x = x
-#endif
 
 -- | Log if trace level (@-DDEBUG_TRACE@) is set
 logT :: HasLogger m => LogStr -> m ()
 {-# INLINE logT #-}
-#ifdef DEBUG_TRACE
 logT = log
-#else
-logT = const (pure ())
-#endif

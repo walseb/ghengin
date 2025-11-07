@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedRecordDot #-}
@@ -12,8 +11,6 @@ module Ghengin.DearImGui
   , IM.glfwNewFrame
   , module DearImGui
   ) where
-
--- #define IMGUI_DEBUG
 
 import qualified Prelude
 import Prelude.Linear

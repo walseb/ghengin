@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedRecordDot #-}
@@ -28,9 +27,6 @@ import qualified Vulkan.Linear as Vk
 instanceExtensions :: V.Vector BS.ByteString
 instanceExtensions = [
 -- Apple silicon requires this extension at least from 1.3 with MoltenVk
-#if defined(darwin_HOST_OS) && defined(aarch64_HOST_ARCH)
-                       Vk.KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
-#endif
                      -- , Vk.EXT_METAL_SURFACE_EXTENSION_NAME
                      ]
 
@@ -68,9 +64,6 @@ createInstance validationLayers = Linear.liftSystemIO $ do
       = Vk.InstanceCreateInfo {..} where
           next  = ()
           flags = Vk.InstanceCreateFlagBits 0
-#if defined(darwin_HOST_OS)
-                    .|. Vk.INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR -- required at least on 1.3 w MoltenVk
-#endif
           applicationInfo = Just appInfo
           enabledLayerNames = validationLayers
           enabledExtensionNames = instanceExtensions <> glfwe

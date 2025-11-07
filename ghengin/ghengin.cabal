@@ -48,9 +48,6 @@ common common-flags
                  -- -falignment-sanitisation
 
     cc-options: -O0 -DDEBUG
-    cpp-options: -DDEBUG
-                 -DDEBUG_TRACE
-                 -- -DTHINGS_ARE_GOING_THAT_BAD
   else
     ghc-options: -Wall -O
     -- -fexpose-all-unfoldings -fspecialize-aggressively
