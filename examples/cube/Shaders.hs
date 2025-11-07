@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-missing-local-signatures #-}
 
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
