@@ -81,17 +81,20 @@ type ResourceMap = IntMap DescriptorResource
 
 data DescriptorResource where
   UniformResource   :: Alias MappedBuffer ⊸ DescriptorResource
+  StorageResource   :: Alias MappedBuffer ⊸ DescriptorResource
   Texture2DResource :: Alias Texture2D ⊸ DescriptorResource
   deriving Generic
 
 instance Forgettable Renderer DescriptorResource where
   forget = \case
     UniformResource u -> Alias.forget u
+    StorageResource u -> Alias.forget u
     Texture2DResource t -> Alias.forget t
 
 instance Shareable m DescriptorResource where
   share = \case
     UniformResource u -> bimap UniformResource UniformResource <$> Alias.share u
+    StorageResource u -> bimap StorageResource StorageResource <$> Alias.share u
     Texture2DResource t -> bimap Texture2DResource Texture2DResource <$> Alias.share t
 
 -- | Mapping from each binding to corresponding binding type, shader stage
@@ -170,6 +173,7 @@ createDescriptorSetBindingsMap ppstages = makeDescriptorSetMap (go Prelude.mempt
 descriptorType :: SPIRV.PointerTy -> Vk.DescriptorType
 descriptorType = \case
   SPIRV.PointerTy SPIRV.Storage.Uniform _ -> Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
+  SPIRV.PointerTy SPIRV.Storage.StorageBuffer _ -> Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER
   -- SPIRV.PointerTy SPIRV.Storage.UniformConstant SPIRV.Sampler -> Vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
   SPIRV.PointerTy SPIRV.Storage.UniformConstant (SPIRV.SampledImage _) -> Vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
   x -> error $ "Unexpected/unsupported descriptor set #1 descriptor type: " <> show x
@@ -374,6 +378,26 @@ updateDescriptorSet = Unsafe.toLinear2 \(DescriptorSet uix dset) resources -> en
                , dstBinding = fromIntegral i
                , dstArrayElement = 0 -- Descriptors could be arrays. We just use 0
                , descriptorType = Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER -- The type of buffer
+               , descriptorCount = 1 -- Only one buffer in the array of buffers to update
+               , bufferInfo = [bufferInfo] -- The one buffer info
+               , imageInfo = []
+               , texelBufferView = []
+               }
+
+        StorageResource bufA ->
+          -- Each descriptor only has one buffer. If we had an array of buffers in a descriptor we would need multiple descriptor buffer infos
+          let bufferInfo = Vk.DescriptorBufferInfo
+                                               { buffer = (Unsafe.Alias.get bufA).buffer
+                                               , offset = 0
+                                               , range  = Vk.WHOLE_SIZE -- the whole buffer
+                                               }
+
+           in pure $ Vk.SomeStruct Vk.WriteDescriptorSet
+               { next = ()
+               , dstSet = dset -- the descriptor set to update with this write
+               , dstBinding = fromIntegral i
+               , dstArrayElement = 0 -- Descriptors could be arrays. We just use 0
+               , descriptorType = Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER -- The type of buffer
                , descriptorCount = 1 -- Only one buffer in the array of buffers to update
                , bufferInfo = [bufferInfo] -- The one buffer info
                , imageInfo = []

@@ -6,6 +6,7 @@ module Ghengin.Core.Render.Property
   , PropertyBindings
   , HasProperties(..)
   , HasPropertyAt(..)
+  , BufferType (..)
   , makeResources
   , writeProperty
 
@@ -26,6 +27,8 @@ import qualified Data.IntMap.Linear as IM
 
 import qualified Vulkan as Vk -- TODO: Core shouldn't depend on any specific renderer implementation external to Core
 
+data BufferType = Uniform | Storage
+
 -- |
 --
 -- === Example
@@ -43,14 +46,16 @@ data PropertyBinding α where
 
   -- | Write the property to a mapped buffer every frame
   DynamicBinding :: ∀ α. (Block α, PBInv α ~ Ur α) -- Block to write the buffers with proper standard
-                 => Ur α -- ^ A dynamic binding is written to a mapped buffer based on the value of the constructor every frame
+                 => BufferType
+                 -> Ur α -- ^ A dynamic binding is written to a mapped buffer based on the value of the constructor every frame
                  -> PropertyBinding α
 
   -- | A static buffer is re-used (without being written to) every frame to bind this property.
   -- The static buffer is written when the property is edited, and only then.
   -- If you want data that updates frequently, use a 'DynamicBinding' instead
   StaticBinding :: ∀ α. (Block α, PBInv α ~ Ur α) -- Block to write the buffers with proper standard
-                => Ur α
+                => BufferType
+                -> Ur α
                 -> PropertyBinding α
 
   Texture2DBinding :: Alias Texture2D ⊸ PropertyBinding Texture2D
@@ -58,14 +63,14 @@ data PropertyBinding α where
 
 instance Forgettable Renderer (PropertyBinding α) where
   forget = \case
-    DynamicBinding _ -> pure ()
-    StaticBinding  _ -> pure ()
+    DynamicBinding _ _ -> pure ()
+    StaticBinding  _ _ -> pure ()
     Texture2DBinding refc -> Alias.forget refc
 
 instance MonadIO m => Shareable m (PropertyBinding α) where
   share = \case
-    DynamicBinding (Ur x) -> pure (DynamicBinding (Ur x), DynamicBinding (Ur x))
-    StaticBinding  (Ur x) -> pure (StaticBinding (Ur x), StaticBinding (Ur x))
+    DynamicBinding t (Ur x) -> pure (DynamicBinding t (Ur x), DynamicBinding t (Ur x))
+    StaticBinding  t (Ur x) -> pure (StaticBinding t (Ur x), StaticBinding t (Ur x))
     Texture2DBinding t -> bimap Texture2DBinding Texture2DBinding <$> Alias.share t
 
 -- | A 'PropertyBinding' actual value. Useful when we want to define functions
@@ -122,27 +127,34 @@ makeResources = enterD "makeResources" . go_build 0
       (rmap, pbs') <- go_build (i+1) pbs
       pure (IM.insert i dres rmap, pb' :## pbs')
 
+    uniformResource :: BufferType -> Alias MappedBuffer ⊸ DescriptorResource
+    uniformResource Uniform mb = UniformResource mb
+    uniformResource Storage mb = StorageResource mb
+
+    descriptorType Uniform = Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    descriptorType Storage = Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER
+
     go :: ∀ β. PropertyBinding β ⊸ Renderer (DescriptorResource, PropertyBinding β)
     go pb = case pb of
-      DynamicBinding (Ur x) -> Linear.do
-
+      DynamicBinding t (Ur x) -> Linear.do
         -- Allocate the associated buffers. These buffers will be written to
         -- every frame (unlike buffers underlying `StaticBinding`s)
-        mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        pure (UniformResource mb, DynamicBinding (Ur x))
+        mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) (descriptorType t)
 
-      StaticBinding (Ur x) -> Linear.do
+        pure (uniformResource t mb, DynamicBinding t (Ur x))
+
+      StaticBinding t (Ur x) -> Linear.do
 
         -- Allocate the associated buffers
         -- TODO: This be a deviceLocalBuffer
         -- TODO: instead -> createDeviceLocalBuffer Vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT x
-        mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) (descriptorType t)
 
         -- Write the static information to this buffer right away. It may be
         -- later updated if the static property is edited with `editProperty`.
         mb' <- writeMappedBuffer mb x
 
-        pure (UniformResource mb', StaticBinding (Ur x))
+        pure (uniformResource t mb', StaticBinding t (Ur x))
         
       Texture2DBinding t -> Linear.do
 
@@ -164,20 +176,24 @@ makeResources = enterD "makeResources" . go_build 0
 -- The property bindings function should be created from a compatible pipeline
 writeProperty :: DescriptorResource ⊸ PropertyBinding α ⊸ Renderer (DescriptorResource, PropertyBinding α)
 writeProperty dr pb = case pb of
-  StaticBinding x ->
+  StaticBinding t x ->
     -- The static binding is static, and has already has been written to (at
     -- initialisation and eventually `editProperty`). We simply bind it
     -- together with the rest of the set at draw time and do nothing here.
-    pure (dr, StaticBinding x)
+    pure (dr, StaticBinding t x)
   Texture2DBinding t ->
     -- As above. Static bindings don't get written every frame.
     pure (dr, Texture2DBinding t)
-  DynamicBinding (Ur (a :: α)) ->
+  DynamicBinding t (Ur (a :: α)) ->
     case dr of
       UniformResource buf -> Linear.do
         -- Dynamic bindings are written every frame
         buf' <- writeMappedBuffer buf a
-        pure (UniformResource buf', DynamicBinding (Ur a))
+        pure (UniformResource buf', DynamicBinding t (Ur a))
+      StorageResource buf -> Linear.do
+        -- Dynamic bindings are written every frame
+        buf' <- writeMappedBuffer buf a
+        pure (StorageResource buf', DynamicBinding t (Ur a))
       Texture2DResource t -> Alias.forget t >>
         error "writeProperty: one can't write a dynamic binding into a non-mapped-buffer resource"
 
@@ -373,7 +389,7 @@ editProperty :: ∀ α
               ⊸ Renderer (PropertyBinding α, DescriptorSet, ResourceMap) -- ^ Returns the updated property binding
 editProperty prop update i dset resmap0 = Linear.do
   case prop of
-    DynamicBinding (x :: Ur α) -> Linear.do
+    DynamicBinding t (x :: Ur α) -> Linear.do
       Ur ux <- update x
 
       -- We don't need to do the following update on editProperty since
@@ -382,9 +398,9 @@ editProperty prop update i dset resmap0 = Linear.do
       -- (UniformResource bufref, resmap1) <- getDescriptorResource resmap0 i
       -- writeDynamicBinding bufref ux >>= Alias.forget
 
-      pure (DynamicBinding (Ur ux), dset, resmap0)
+      pure (DynamicBinding t (Ur ux), dset, resmap0)
 
-    StaticBinding x -> Linear.do
+    StaticBinding t x -> Linear.do
       Ur ux <- update x
 
       -- Oh. Had to change this because the pattern wasn't complete so
@@ -394,7 +410,13 @@ editProperty prop update i dset resmap0 = Linear.do
 
           writeStaticBinding bufref ux >>= Alias.forget
 
-          pure (StaticBinding (Ur ux), dset, resmap1)
+          pure (StaticBinding t (Ur ux), dset, resmap1)
+
+        (StorageResource bufref, resmap1) -> Linear.do
+
+          writeStaticBinding bufref ux >>= Alias.forget
+
+          pure (StaticBinding t (Ur ux), dset, resmap1)
 
         (Texture2DResource t, resmap1) ->
           Alias.forget resmap1 >> Alias.forget t >>
