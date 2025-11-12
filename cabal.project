@@ -14,6 +14,7 @@ packages:
           /home/admin/root/dep/hs-root/dep/softfloat-hs/
           /home/admin/root/dep/hs-root/dep/reference-counting/
           /home/admin/root/dep/hs-root/dep/hiedb-plugin/
+          /home/admin/root/dep/hs-root/dep/geomancy
 -------------------------------
 -- DEBUG PATCHES
 -------------------------------
