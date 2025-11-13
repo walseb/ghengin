@@ -130,6 +130,8 @@ runRenderer dimensions r = Linear.do
 
   pure a
 
+
+
 -- | Run a 'Renderer' action that depends on a command buffer and the current
 -- image index of the swapchain to typically by writing to the command buffer
 -- the draw calls (to the renderpasse's framebuffer responsible for that
