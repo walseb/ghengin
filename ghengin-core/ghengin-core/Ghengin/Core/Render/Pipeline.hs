@@ -165,7 +165,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
   -- Make the unique identifier for this pipeline reference
   Ur uniq <- liftSystemIOU newUnique
 
-  pure $ mkRP (RenderPipeline pipeline renderPass (dset2, resources2, dpool5) shaderPipeline uniq) props1
+  pure $ mkRP (RenderPipeline pipeline renderPass (dset2, resources2, (Ur (fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))), dpool5) shaderPipeline uniq) props1
     where
       mkRP :: ∀ info (b :: [Type]). RenderPipeline info '[] ⊸ PropertyBindings b ⊸ RenderPipeline info b
       mkRP x GHNil = x
@@ -186,9 +186,9 @@ instance HasProperties (RenderPipeline π) where
 
   descriptors :: RenderPipeline π α ⊸ Renderer (Alias DescriptorSet, Alias ResourceMap, RenderPipeline π α)
   descriptors = \case
-    RenderPipeline gpip rpass (dset0, rmap0, dpool) spip uq -> Linear.do
+    RenderPipeline gpip rpass (dset0, rmap0, dmap, dpool) spip uq -> Linear.do
       ((dset1, rmap1), (dset2, rmap2)) <- Alias.share (dset0, rmap0)
-      pure (dset1, rmap1, RenderPipeline gpip rpass (dset2, rmap2, dpool) spip uq)
+      pure (dset1, rmap1, RenderPipeline gpip rpass (dset2, rmap2, dmap, dpool) spip uq)
     RenderProperty p xs -> Linear.do
       (dset, rmap, mat') <- descriptors xs
       pure (dset, rmap, RenderProperty p mat')
@@ -201,7 +201,7 @@ destroyRenderPipeline :: RenderPipeline α τ ⊸ Renderer ()
 destroyRenderPipeline (RenderProperty b rp) = enterD "Destroying render pipeline" Linear.do
   Alias.forget b
   destroyRenderPipeline rp
-destroyRenderPipeline (RenderPipeline gp rp (a,b,c) _ _) = enterD "Destroying render pipeline" Linear.do
+destroyRenderPipeline (RenderPipeline gp rp (a,b,(Ur _),c) _ _) = enterD "Destroying render pipeline" Linear.do
   Alias.forget a >> Alias.forget b >> Alias.forget c
   Alias.forget rp
   destroyPipeline gp
