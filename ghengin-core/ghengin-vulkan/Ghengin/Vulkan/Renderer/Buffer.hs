@@ -124,8 +124,6 @@ createMappedBuffer size descriptorType = enterD "createMappedBuffer" Linear.do
   Alias.newAlias destroyMappedBuffer (MappedBuffer buf devMem1 (Unsafe.toLinear castPtr data') (Ur size))
 
   where
-    -- descriptorType Uniform = Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
-    -- descriptorType Storage = Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER
     bufferUsageBit Uniform = Vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT
     bufferUsageBit Storage = Vk.BUFFER_USAGE_STORAGE_BUFFER_BIT
 

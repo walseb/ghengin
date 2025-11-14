@@ -40,6 +40,8 @@ import qualified FIR.Pipeline
 
 import qualified Data.Linear.Alias as Alias
 
+import qualified Data.IntMap.Strict as IM
+
 import Ghengin.Core.Render.Property
 import Ghengin.Core.Shader.Pipeline ( ShaderPipeline )
 import Data.Unique
@@ -58,7 +60,7 @@ data RenderPipeline info tys where
 
   RenderPipeline :: RendererPipeline Graphics -- ^ The graphics pipeline underlying this render pipeline. Can a graphics pipeline be shared amongst Render Pipelines such that this field needs to be ref counted?
                  ⊸  Alias RenderPass -- ^ A reference counted reference to a render pass, since we might share render passes amongst pipelines
-                 ⊸  (Alias DescriptorSet, Alias ResourceMap, Alias DescriptorPool) -- A descriptor set per frame; currently we are screwing up drawing multiple frames. Descriptor Set for the render properties.
+                 ⊸  (Alias DescriptorSet, Alias ResourceMap, Ur BindingsMap, Alias DescriptorPool) -- A descriptor set per frame; currently we are screwing up drawing multiple frames. Descriptor Set for the render properties.
                  ⊸  ShaderPipeline info
                  -> Unique
                  -> RenderPipeline info '[] 
@@ -122,8 +124,10 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
   -- properties.
   -- Each Material and Mesh then allocates additional descriptor sets from this pool on creation.
 
+  (Ur descSetMap) <- pure $ createDescriptorSetBindingsMap shaderPipeline
+
   logT "Creating descriptor pool"
-  dpool0 <- createDescriptorPool shaderPipeline
+  dpool0 <- createDescriptorPool descSetMap
 
   -- Allocate descriptor set #0 to be used by this render pipeline's
   -- render properties
@@ -135,7 +139,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
 
   -- Make the resource map for this render pipeline using the dummyRP
   logT "Making resources"
-  (resources0, props1) <- makeResources props0
+  (resources0, props1) <- makeResources ((Ur (fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))) :: (Ur BindingsMap)) props0
 
   -- Bind resources to descriptor set
   logT "Updating descriptor set"

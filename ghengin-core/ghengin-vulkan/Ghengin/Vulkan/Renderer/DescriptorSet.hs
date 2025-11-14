@@ -121,8 +121,8 @@ instance Show SomeDefs where
 -- | Creates a mapping from descriptor set indexes to a list of their bindings
 -- (corresponding binding type, size, shader stage flags) solely from the shader
 -- pipeline definition.
-createDescriptorSetBindingsMap :: ShaderPipeline info -> DescriptorSetMap
-createDescriptorSetBindingsMap ppstages = makeDescriptorSetMap (go Prelude.mempty ppstages)
+createDescriptorSetBindingsMap :: ShaderPipeline info -> Ur DescriptorSetMap
+createDescriptorSetBindingsMap ppstages = Ur $ makeDescriptorSetMap (go Prelude.mempty ppstages)
                                             -- If any of the descriptor sets is
                                             -- unused, we default to an empty bindings map
                                             <> IM.fromList [(0, mempty), (1, mempty), (2, mempty)]
@@ -207,19 +207,18 @@ shader) from the pool, rather than specifying each descriptor.
 -- | See Note [Pools]
 data DescriptorPool =
   DescriptorPool { dpool :: Vk.DescriptorPool
-                 , set_bindings :: IntMap (Vk.DescriptorSetLayout, BindingsMap)
+                 , set_bindings :: IntMap Vk.DescriptorSetLayout
                  }
 
 -- Creates a pool as described in Note [Pools].
 --
 -- TODO: Right amount of descriptors. For now we simply multiply 1000 by the
 -- number of all total descriptors across sets
-createDescriptorPool :: ShaderPipeline info -> Renderer DescriptorPool
-createDescriptorPool sp = enterD "createDescriptorPool" $
-  case createDescriptorSetBindingsMap sp of
+createDescriptorPool :: DescriptorSetMap -> Renderer DescriptorPool
+createDescriptorPool dsp = enterD "createDescriptorPool" $
+  case dsp of
     dsetmap -> Linear.do
-
-      layouts <- Data.Linear.traverse (\bm -> case move bm of Ur bm1 -> (,bm1) <$> createDescriptorSetLayout bm1) dsetmap
+      layouts <- Data.Linear.traverse (\bm -> case move bm of Ur bm1 -> createDescriptorSetLayout bm1) dsetmap
 
       let 
         descriptorsAmounts :: [(Vk.DescriptorType, Int)] -- ^ For each type, its amount
@@ -239,7 +238,7 @@ createDescriptorPool sp = enterD "createDescriptorPool" $
 destroyDescriptorPool :: DescriptorPool ⊸ Renderer ()
 destroyDescriptorPool DescriptorPool{..} = enterD "destroyDescriptorPool" $ Linear.do
   withDevice (Vk.destroyDescriptorPool Nothing dpool)
-  consume <$> Data.Linear.traverse (withDevice . Vk.destroyDescriptorSetLayout Nothing . fst) set_bindings
+  consume <$> Data.Linear.traverse (withDevice . Vk.destroyDescriptorSetLayout Nothing) set_bindings
 
 -- | Create a DescriptorSetLayout for a group of bindings (that represent a set) and their properties.
 --
@@ -322,21 +321,18 @@ allocateEmptyDescriptorSets ixs DescriptorPool{..} = enterD "allocateEmptyDescri
   assertM "allocateEmptyDescriptorSets" (to_alloc_size == VL.theLength @n)
   
   -- Extract the infos from the sets by ix to allocate
-  (keys, to_alloc_tups) <- pure $ unzip $ IML.toList $ to_alloc
-  (layouts, bindingsxs) <- pure $ unzip $ to_alloc_tups
+  (keys, layouts) <- pure $ unzip $ IML.toList $ to_alloc
 
   -- Allocate the descriptor sets
   (dsets, V layouts, dpool) <- enterD "Allocate the descriptor sets" $
     withDevice (Vk.allocateDescriptorSets dpool (V @n (l2vec layouts))) -- @n since the partition takes @n@ integers (well, only if the integer list is disjoint...)
 
   -- Reconstruct things
-  case zip' (vec2l layouts) bindingsxs of
-   (to_alloc_tups, Nothing) ->
-     case zip' keys to_alloc_tups of
-       (to_alloc, Nothing) -> Linear.do
-         set_bindings  <- pure $ IML.unionWith (Unsafe.toLinear2 \_ _ -> error "impossible") (IML.fromList to_alloc) the_rest
+  case zip' keys (vec2l layouts) of
+    (to_alloc, Nothing) -> Linear.do
+      set_bindings  <- pure $ IML.unionWith (Unsafe.toLinear2 \_ _ -> error "impossible") (IML.fromList to_alloc) the_rest
 
-         pure (vzipWith DescriptorSet ixs dsets, DescriptorPool dpool set_bindings)
+      pure (vzipWith DescriptorSet ixs dsets, DescriptorPool dpool set_bindings)
   
 -- | Update the configuration of a descriptor set with multiple resources (e.g. buffers + images)
 updateDescriptorSet :: DescriptorSet -- ^ The descriptor set we're updating with these resources

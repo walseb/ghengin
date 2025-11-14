@@ -78,8 +78,11 @@ destroyDeviceLocalBuffer :: DeviceLocalBuffer ⊸ Renderer ()
 -- | A mapped (uniform) buffer. See Note [Mapped vs Device-local Buffers]
 data MappedBuffer
 
+-- | Type of buffer (e.g. uniform, storage)
+data BufferType = Uniform | Storage
+
 -- | TODO: Drop dependency on Vulkan and make DescriptorType a data type renderer agnostic
-createMappedBuffer :: Word -> Vk.DescriptorType -> Renderer (Alias MappedBuffer)
+createMappedBuffer :: Word -> BufferType -> Renderer (Alias MappedBuffer)
 writeMappedBuffer :: ∀ α. Block α => Alias MappedBuffer ⊸ α -> Renderer (Alias MappedBuffer)
 
 
