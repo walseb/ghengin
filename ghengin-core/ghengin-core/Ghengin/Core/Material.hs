@@ -112,7 +112,7 @@ material props0 (RenderPipeline gpip rpass (rdset, rres, dpool0) shaders uq) = L
 
   -- Make the resource map for this material
   -- Will also count texture references
-  (resources0, props1) <- makeResources props0
+  (resources0, props1) <- makeResources rres props0
 
   -- Create the descriptor set with the written descriptors based on the
   -- created resource map

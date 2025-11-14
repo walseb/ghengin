@@ -108,34 +108,26 @@ data MappedBuffer = MappedBuffer { buffer  :: {-# UNPACK #-} !Vk.Buffer
                                   , bufSize :: {-# UNPACK #-} !(Ur Word)
                                   }
 
+data BufferType = Uniform | Storage
+
 -- | Create a uniform buffer with a given size, but don't copy memory to it
 -- yet. See 'writeUniformBuffer' for that.
-createMappedBuffer :: Word -> Vk.DescriptorType -> Renderer (Alias MappedBuffer)
+createMappedBuffer :: Word -> BufferType -> Renderer (Alias MappedBuffer)
 createMappedBuffer size descriptorType = enterD "createMappedBuffer" Linear.do
+  let bsize = fromIntegral size
 
-  case descriptorType of
-    Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER -> Linear.do
+  (buf, devMem0) <- createBuffer bsize (bufferUsageBit descriptorType) (Vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT .|. Vk.MEMORY_PROPERTY_HOST_COHERENT_BIT)
 
-      let bsize = fromIntegral size
+  (devMem1, data') <- mapMemory devMem0 0 bsize zero
+  data' <- unsafeUse data' $ \d -> logT $ "Created uniform mapped region: " <> toLogStr (show d)
 
-      (buf, devMem0) <- createBuffer bsize Vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT (Vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT .|. Vk.MEMORY_PROPERTY_HOST_COHERENT_BIT)
+  Alias.newAlias destroyMappedBuffer (MappedBuffer buf devMem1 (Unsafe.toLinear castPtr data') (Ur size))
 
-      (devMem1, data') <- mapMemory devMem0 0 bsize zero
-      data' <- unsafeUse data' $ \d -> logT $ "Created uniform mapped region: " <> toLogStr (show d)
-
-      Alias.newAlias destroyMappedBuffer (MappedBuffer buf devMem1 (Unsafe.toLinear castPtr data') (Ur size))
-
-    Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER -> Linear.do
-      let bsize = fromIntegral size
-
-      (buf, devMem0) <- createBuffer bsize Vk.BUFFER_USAGE_STORAGE_BUFFER_BIT (Vk.MEMORY_PROPERTY_HOST_VISIBLE_BIT .|. Vk.MEMORY_PROPERTY_HOST_COHERENT_BIT)
-
-      (devMem1, data') <- mapMemory devMem0 0 bsize zero
-      data' <- unsafeUse data' $ \d -> logT $ "Created mapped storage region: " <> toLogStr (show d)
-
-      Alias.newAlias destroyMappedBuffer (MappedBuffer buf devMem1 (Unsafe.toLinear castPtr data') (Ur size))
-
-    t -> error $ "Unexpected/unsupported storage class for descriptor: " <> show t
+  where
+    -- descriptorType Uniform = Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    -- descriptorType Storage = Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER
+    bufferUsageBit Uniform = Vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT
+    bufferUsageBit Storage = Vk.BUFFER_USAGE_STORAGE_BUFFER_BIT
 
 -- | Note how the storable must be the same as the storable of the uniform
 -- buffer so that the sizes match

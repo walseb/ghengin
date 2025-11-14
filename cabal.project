@@ -3,6 +3,17 @@ packages:
           ./ghengin-core/
           ./linear-utils/
           ./ghengin/
+
+          /home/admin/root/dep/hs-root/dep/alpaca-netcode
+          /home/admin/root/dep/hs-root/dep/hs-adapter-simple
+          /home/admin/root/dep/hs-root/dep/langchain-hs
+          /home/admin/root/dep/hs-root/dep/essence-of-live-coding/essence-of-live-coding/
+          /home/admin/root/dep/hs-root/dep/fir
+          /home/admin/root/dep/hs-root/dep/hydraulics
+          /home/admin/root/dep/hs-root/dep/softfloat-hs/
+          /home/admin/root/dep/hs-root/dep/reference-counting/
+          /home/admin/root/dep/hs-root/dep/hiedb-plugin/
+          /home/admin/root/dep/hs-root/dep/geomancy
 --          ./packaging-macos/
 -------------------------------
 -- DEBUG PATCHES
