@@ -115,8 +115,8 @@ Likewise we have Mesh property bindings at dset #2
 -- Additionally, update the reference counts of resources that are reference
 -- counted:
 --  * Texture2D
-makeResources :: ∀ α. (Ur BindingsMap) -> PropertyBindings α ⊸ Renderer (ResourceMap, PropertyBindings α)
-makeResources (Ur bm) = enterD "makeResources" . go_build 0 bm
+makeResources :: ∀ α. BindingsMap -> PropertyBindings α ⊸ Renderer (ResourceMap, PropertyBindings α)
+makeResources bm = enterD "makeResources" . go_build 0 bm
   where
     go_build :: ∀ αs. Int -> BindingsMap -> PropertyBindings αs ⊸ Renderer (ResourceMap, PropertyBindings αs)
     go_build !_i _bmap GHNil        = pure (IM.empty, GHNil)

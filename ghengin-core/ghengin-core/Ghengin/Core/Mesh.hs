@@ -36,6 +36,8 @@ import Ghengin.Core.Renderer.DescriptorSet
 import Ghengin.Core.Log
 import Ghengin.Core.Type.Utils (Some(..))
 
+import qualified Data.IntMap.Strict as IM
+
 import qualified Data.Linear.Alias as Alias
 
 {-
@@ -132,7 +134,7 @@ createMesh (RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool0) shaders u
   Ur uniq      <- liftSystemIOU newUnique
   vertexBuffer <- createVertexBuffer vs
 
-  (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes (Ur bmap) dpool0 props0
+  (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes bmap dpool0 props0
 
   pure ( mkMesh (SimpleMesh vertexBuffer (dset0, rmap0) uniq) props1
        , RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool1) shaders uq
@@ -154,7 +156,7 @@ createMeshWithIxs (RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool0) sh
   vertexBuffer <- createVertexBuffer vertices
   indexBuffer  <- createIndex32Buffer ixs
 
-  (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes (Ur bmap) dpool0 props0
+  (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes bmap dpool0 props0
 
   pure ( mkMesh (IndexedMesh vertexBuffer indexBuffer (dset0, rmap0) uniq) props1
        , RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool1) shaders uq
@@ -164,7 +166,7 @@ mkMesh :: ∀ t b. Mesh t '[] ⊸ PropertyBindings b ⊸ Mesh t b
 mkMesh x GHNil = x
 mkMesh x (p :## pl) = MeshProperty p (mkMesh x pl)
 
-allocateDescriptorsForMeshes :: BindingsMap -> Alias DescriptorPool ⊸ PropertyBindings props ⊸ Renderer (Alias DescriptorSet, Alias ResourceMap, Alias DescriptorPool, PropertyBindings props)
+allocateDescriptorsForMeshes :: DescriptorSetMap -> Alias DescriptorPool ⊸ PropertyBindings props ⊸ Renderer (Alias DescriptorSet, Alias ResourceMap, Alias DescriptorPool, PropertyBindings props)
 allocateDescriptorsForMeshes bmap dpool0 props0 = Linear.do
   -- Mostly just the same as in 'material' in Ghengin.Core.Material
 
@@ -175,7 +177,7 @@ allocateDescriptorsForMeshes bmap dpool0 props0 = Linear.do
 
   logT "Allocating resource map"
   -- Make the resource map for this material
-  (resources0, props1) <- makeResources bmap props0
+  (resources0, props1) <- makeResources (fromMaybe (error "Impossible makeResources") (IM.lookup 2 bmap)) props0
 
   logT "Updating descriptor with resources"
   -- Create the descriptor set with the written descriptors based on the created resource map

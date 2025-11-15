@@ -60,7 +60,7 @@ data RenderPipeline info tys where
 
   RenderPipeline :: RendererPipeline Graphics -- ^ The graphics pipeline underlying this render pipeline. Can a graphics pipeline be shared amongst Render Pipelines such that this field needs to be ref counted?
                  ⊸  Alias RenderPass -- ^ A reference counted reference to a render pass, since we might share render passes amongst pipelines
-                 ⊸  (Alias DescriptorSet, Alias ResourceMap, Ur BindingsMap, Alias DescriptorPool) -- A descriptor set per frame; currently we are screwing up drawing multiple frames. Descriptor Set for the render properties.
+                 ⊸  (Alias DescriptorSet, Alias ResourceMap, Ur DescriptorSetMap, Alias DescriptorPool) -- A descriptor set per frame; currently we are screwing up drawing multiple frames. Descriptor Set for the render properties.
                  ⊸  ShaderPipeline info
                  -> Unique
                  -> RenderPipeline info '[] 
@@ -139,7 +139,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
 
   -- Make the resource map for this render pipeline using the dummyRP
   logT "Making resources"
-  (resources0, props1) <- makeResources ((Ur (fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))) :: (Ur BindingsMap)) props0
+  (resources0, props1) <- makeResources ((fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))) props0
 
   -- Bind resources to descriptor set
   logT "Updating descriptor set"
@@ -165,7 +165,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
   -- Make the unique identifier for this pipeline reference
   Ur uniq <- liftSystemIOU newUnique
 
-  pure $ mkRP (RenderPipeline pipeline renderPass (dset2, resources2, (Ur (fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))), dpool5) shaderPipeline uniq) props1
+  pure $ mkRP (RenderPipeline pipeline renderPass (dset2, resources2, (Ur descSetMap), dpool5) shaderPipeline uniq) props1
     where
       mkRP :: ∀ info (b :: [Type]). RenderPipeline info '[] ⊸ PropertyBindings b ⊸ RenderPipeline info b
       mkRP x GHNil = x

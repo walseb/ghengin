@@ -13,6 +13,8 @@ import Ghengin.Core.Render.Pipeline ( RenderPipeline(..) )
 import Ghengin.Core.Renderer.Kernel
 import Ghengin.Core.Renderer.DescriptorSet
 
+import qualified Data.IntMap.Strict as IM
+
 import qualified Data.Linear.Alias as Alias
 
 {-
@@ -112,7 +114,7 @@ material props0 (RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool0) shad
 
   -- Make the resource map for this material
   -- Will also count texture references
-  (resources0, props1) <- makeResources (Ur bmap) props0
+  (resources0, props1) <- makeResources (fromMaybe (error "Impossible makeResources") (IM.lookup 1 bmap)) props0
 
   -- Create the descriptor set with the written descriptors based on the
   -- created resource map
