@@ -215,25 +215,23 @@ data DescriptorPool =
 -- TODO: Right amount of descriptors. For now we simply multiply 1000 by the
 -- number of all total descriptors across sets
 createDescriptorPool :: DescriptorSetMap -> Renderer DescriptorPool
-createDescriptorPool dsp = enterD "createDescriptorPool" $
-  case dsp of
-    dsetmap -> Linear.do
-      layouts <- Data.Linear.traverse (\bm -> case move bm of Ur bm1 -> createDescriptorSetLayout bm1) dsetmap
+createDescriptorPool dsetmap = enterD "createDescriptorPool" $ Linear.do
+  layouts <- Data.Linear.traverse (\bm -> case move bm of Ur bm1 -> createDescriptorSetLayout bm1) dsetmap
 
-      let 
-        descriptorsAmounts :: [(Vk.DescriptorType, Int)] -- ^ For each type, its amount
-        descriptorsAmounts = Prelude.map (\(t :| ls) -> (t, 1000 * (Prelude.length ls + 1))) Prelude.. NonEmpty.group Prelude.. L.sort $ Prelude.foldMap (Prelude.foldr (\(ty,_) -> (ty:)) Prelude.mempty) dsetmap
-        poolsSizes = Prelude.map (\(t,fromIntegral -> a) -> Vk.DescriptorPoolSize {descriptorCount = a, type' = t}) descriptorsAmounts
+  let 
+    descriptorsAmounts :: [(Vk.DescriptorType, Int)] -- ^ For each type, its amount
+    descriptorsAmounts = Prelude.map (\(t :| ls) -> (t, 1000 * (Prelude.length ls + 1))) Prelude.. NonEmpty.group Prelude.. L.sort $ Prelude.foldMap (Prelude.foldr (\(ty,_) -> (ty:)) Prelude.mempty) dsetmap
+    poolsSizes = Prelude.map (\(t,fromIntegral -> a) -> Vk.DescriptorPoolSize {descriptorCount = a, type' = t}) descriptorsAmounts
 
-        setsAmount = fromIntegral $ Prelude.length dsetmap
-        poolInfo = Vk.DescriptorPoolCreateInfo { poolSizes = V.fromList poolsSizes
-                                               , maxSets = 1000 Prelude.* setsAmount
-                                               , flags = Vk.zero
-                                               , next = ()
-                                               }
+    setsAmount = fromIntegral $ Prelude.length dsetmap
+    poolInfo = Vk.DescriptorPoolCreateInfo { poolSizes = V.fromList poolsSizes
+                                            , maxSets = 1000 Prelude.* setsAmount
+                                            , flags = Vk.zero
+                                            , next = ()
+                                            }
 
-      descriptorPool <- withDevice (Vk.createDescriptorPool poolInfo Nothing)
-      pure (DescriptorPool descriptorPool layouts)
+  descriptorPool <- withDevice (Vk.createDescriptorPool poolInfo Nothing)
+  pure (DescriptorPool descriptorPool layouts)
 
 destroyDescriptorPool :: DescriptorPool ⊸ Renderer ()
 destroyDescriptorPool DescriptorPool{..} = enterD "destroyDescriptorPool" $ Linear.do
@@ -381,7 +379,6 @@ updateDescriptorSet = Unsafe.toLinear2 \(DescriptorSet uix dset) resources -> en
                }
 
         StorageResource bufA ->
-          -- Each descriptor only has one buffer. If we had an array of buffers in a descriptor we would need multiple descriptor buffer infos
           let bufferInfo = Vk.DescriptorBufferInfo
                                                { buffer = (Unsafe.Alias.get bufA).buffer
                                                , offset = 0
@@ -434,7 +431,7 @@ updateDescriptorSet = Unsafe.toLinear2 \(DescriptorSet uix dset) resources -> en
 -- I think this comment is outdated:
 -- We must be careful here not to free resources shared across materials
 --
--- (1) Uniform buffers are allocated per-material, so we always free them
+-- (1) Mapped buffers are allocated per-material, so we always free them
 --
 -- (2) Texture resources are allocated outside of the material and might be
 -- shared, so we never free them for now. Eventually they might be

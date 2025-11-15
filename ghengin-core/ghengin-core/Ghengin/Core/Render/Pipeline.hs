@@ -79,9 +79,9 @@ data SomePipeline = ∀ α β. SomePipeline (RenderPipeline α β)
 -- Shader pipeline and buffers are only be created once and reused across
 -- render packets that use the same one (Note that render packets store
 -- references to these things).
--- TODO: Currently we assume all our descriptor sets are Uniform buffers and
--- our buffers too but eventually Uniform will be just a constructor of a more
--- general Buffer and we should select the correct type of buffer individually.
+-- TODO: Currently we assume all our descriptor sets are Uniform or Storage buffers 
+-- and our buffers too but eventually Uniform & Storage will be just a constructor of
+-- a more general Buffer and we should select the correct type of buffer individually.
 makeRenderPipeline :: forall τ info tops descs strides
                     . ( PipelineConstraints info tops descs strides
                       , CompatiblePipeline τ info
@@ -107,7 +107,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
   -- Create the descriptor sets and graphics pipeline based on the shader
   -- pipeline
   --
-  -- (1) Create the uniform buffers and the mapped memory
+  -- (1) Create the uniform/storage buffers and the mapped memory
   -- (2) Create the descriptor sets from the descriptor set layout
   -- (3) Update the descriptor sets with the buffers information
   --
@@ -139,7 +139,7 @@ makeRenderPipelineWith gps renderPass shaderPipeline props0 = Linear.do
 
   -- Make the resource map for this render pipeline using the dummyRP
   logT "Making resources"
-  (resources0, props1) <- makeResources ((fromMaybe (error "Impossible1") (IM.lookup 0 descSetMap))) props0
+  (resources0, props1) <- makeResources ((fromMaybe (error "DescriptorSetMap doesn't contain shader pipeline descriptors.") (IM.lookup 0 descSetMap))) props0
 
   -- Bind resources to descriptor set
   logT "Updating descriptor set"

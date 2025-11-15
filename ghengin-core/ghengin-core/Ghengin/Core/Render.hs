@@ -34,3 +34,4 @@ getDescriptorResource resourcemap i = enterD "getDescriptorResource" $
     (Nothing, rmap1) -> Linear.do
       Alias.forget rmap1
       error $ "Expecting a descriptor resource at binding " <> show i <> " but found nothing!"
+

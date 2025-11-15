@@ -177,7 +177,7 @@ allocateDescriptorsForMeshes bmap dpool0 props0 = Linear.do
 
   logT "Allocating resource map"
   -- Make the resource map for this material
-  (resources0, props1) <- makeResources (fromMaybe (error "Impossible makeResources") (IM.lookup 2 bmap)) props0
+  (resources0, props1) <- makeResources (fromMaybe (error "DescriptorSetMap doesn't contain mesh descriptors.") (IM.lookup 2 bmap)) props0
 
   logT "Updating descriptor with resources"
   -- Create the descriptor set with the written descriptors based on the created resource map

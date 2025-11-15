@@ -92,9 +92,9 @@ destroyDeviceLocalBuffer (DeviceLocalBuffer b dm) = enterD "destroyDeviceLocalBu
 
 -------- Mapped Buffer -----------------
 
--- | A Uniform buffer with size equal to the sizeOf of the Storable @a@
+-- | A buffer with size equal to the sizeOf of the Storable @a@
 --
--- This buffer has USAGE_UNIFORM_BUFFER_BIT and MEMORY_PROPRTY_HOST_VISIBLE and
+-- This buffer has e.g. USAGE_UNIFORM_BUFFER_BIT and MEMORY_PROPRTY_HOST_VISIBLE and
 -- MEMORY_PROPERTY_HOST_COHERENT_BIT -- we allocate device-local and host-local
 -- memory and writing to the mapped buffer entails writing to the host memory
 -- which is mapped to device memory and hence synchronized automatically

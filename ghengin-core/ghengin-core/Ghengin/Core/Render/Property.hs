@@ -39,10 +39,10 @@ import qualified Vulkan as Vk -- TODO: Core shouldn't depend on any specific ren
 -- frame, you should use a 'DynamicBinding'.
 data PropertyBinding α where
 
--- NB: Currently, we use std140 for uniform buffers, but this could eventually
--- be std430 if we used VK_KHR_uniform_buffer_standard_layout. These layouts
--- are provided by Block from gl-block (though this would require FIR to also
--- line this up).
+-- NB: Currently, we use std140 for uniform & storage buffers, but this could
+-- eventually be std430 if we used VK_KHR_uniform_buffer_standard_layout. These 
+-- layouts are provided by Block from gl-block (though this would require FIR to 
+-- also line this up).
 
   -- | Write the property to a mapped buffer every frame
   DynamicBinding :: ∀ α. (Block α, PBInv α ~ Ur α) -- Block to write the buffers with proper standard
@@ -129,9 +129,9 @@ makeResources bm = enterD "makeResources" . go_build 0 bm
     bufferType Vk.DESCRIPTOR_TYPE_UNIFORM_BUFFER = Uniform
     bufferType Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER = Storage
 
-    res :: BufferType -> Alias MappedBuffer ⊸ DescriptorResource
-    res Uniform mb = UniformResource mb
-    res Storage mb = StorageResource mb
+    dRes :: BufferType -> Alias MappedBuffer ⊸ DescriptorResource
+    dRes Uniform mb = UniformResource mb
+    dRes Storage mb = StorageResource mb
 
     go :: ∀ β. (Vk.DescriptorType, Vk.ShaderStageFlags) -> PropertyBinding β ⊸ Renderer (DescriptorResource, PropertyBinding β)
     go (dt, _stage) pb =
@@ -143,19 +143,19 @@ makeResources bm = enterD "makeResources" . go_build 0 bm
           -- every frame (unlike buffers underlying `StaticBinding`s)
           mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) bt
 
-          pure (res bt mb, DynamicBinding (Ur x))
+          pure (dRes bt mb, DynamicBinding (Ur x))
 
         StaticBinding (Ur x) -> Linear.do
           -- Allocate the associated buffers
           -- TODO: This be a deviceLocalBuffer
-          -- TODO: instead -> createDeviceLocalBuffer Vk.BUFFER_USAGE_UNIFORM_BUFFER_BIT x
+          -- TODO: instead -> createDeviceLocalBuffer bt x
           mb <- createMappedBuffer (fromIntegral $ sizeOf140 (Proxy @β)) bt 
 
           -- Write the static information to this buffer right away. It may be
           -- later updated if the static property is edited with `editProperty`.
           mb' <- writeMappedBuffer mb x
 
-          pure (res bt mb', StaticBinding (Ur x))
+          pure (dRes bt mb', StaticBinding (Ur x))
 
         Texture2DBinding t -> Linear.do
 
@@ -393,7 +393,7 @@ editProperty prop update i dset resmap0 = Linear.do
       Ur ux <- update x
 
       -- We don't need to do the following update on editProperty since
-      -- `writeProperty` will already write the uniform buffer of dynamic
+      -- `writeProperty` will already write the mapped buffer of dynamic
       -- properties every frame.
       -- (UniformResource bufref, resmap1) <- getDescriptorResource resmap0 i
       -- writeDynamicBinding bufref ux >>= Alias.forget
@@ -421,7 +421,6 @@ editProperty prop update i dset resmap0 = Linear.do
         (Texture2DResource t, resmap1) ->
           Alias.forget resmap1 >> Alias.forget t >>
           error "is this right?" dset
-
 
     Texture2DBinding xalias -> Linear.do
       ux <- update xalias -- Update function is the one taking into account the
