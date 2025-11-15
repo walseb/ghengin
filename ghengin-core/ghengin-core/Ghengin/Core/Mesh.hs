@@ -164,7 +164,7 @@ mkMesh :: ∀ t b. Mesh t '[] ⊸ PropertyBindings b ⊸ Mesh t b
 mkMesh x GHNil = x
 mkMesh x (p :## pl) = MeshProperty p (mkMesh x pl)
 
-allocateDescriptorsForMeshes :: Ur BindingsMap -> Alias DescriptorPool ⊸ PropertyBindings props ⊸ Renderer (Alias DescriptorSet, Alias ResourceMap, Alias DescriptorPool, PropertyBindings props)
+allocateDescriptorsForMeshes :: BindingsMap -> Alias DescriptorPool ⊸ PropertyBindings props ⊸ Renderer (Alias DescriptorSet, Alias ResourceMap, Alias DescriptorPool, PropertyBindings props)
 allocateDescriptorsForMeshes bmap dpool0 props0 = Linear.do
   -- Mostly just the same as in 'material' in Ghengin.Core.Material
 
