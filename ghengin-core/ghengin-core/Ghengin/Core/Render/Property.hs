@@ -40,8 +40,8 @@ import qualified Vulkan as Vk -- TODO: Core shouldn't depend on any specific ren
 data PropertyBinding α where
 
 -- NB: Currently, we use std140 for uniform & storage buffers, but this could
--- eventually be std430 if we used VK_KHR_uniform_buffer_standard_layout. These 
--- layouts are provided by Block from gl-block (though this would require FIR to 
+-- eventually be std430 if we used VK_KHR_uniform_buffer_standard_layout. These
+-- layouts are provided by Block from gl-block (though this would require FIR to
 -- also line this up).
 
   -- | Write the property to a mapped buffer every frame

@@ -92,7 +92,7 @@ destroyDeviceLocalBuffer (DeviceLocalBuffer b dm) = enterD "destroyDeviceLocalBu
 
 -------- Mapped Buffer -----------------
 
--- | A buffer with size equal to the sizeOf of the Storable @a@
+-- | A mapped buffer with size equal to the sizeOf of the Storable @a@
 --
 -- This buffer has e.g. USAGE_UNIFORM_BUFFER_BIT and MEMORY_PROPRTY_HOST_VISIBLE and
 -- MEMORY_PROPERTY_HOST_COHERENT_BIT -- we allocate device-local and host-local

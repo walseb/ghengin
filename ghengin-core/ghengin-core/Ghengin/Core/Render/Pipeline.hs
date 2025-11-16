@@ -79,7 +79,7 @@ data SomePipeline = ∀ α β. SomePipeline (RenderPipeline α β)
 -- Shader pipeline and buffers are only be created once and reused across
 -- render packets that use the same one (Note that render packets store
 -- references to these things).
--- TODO: Currently we assume all our descriptor sets are Uniform or Storage buffers 
+-- TODO: Currently we assume all our descriptor sets are Uniform or Storage buffers
 -- and our buffers too but eventually Uniform & Storage will be just a constructor of
 -- a more general Buffer and we should select the correct type of buffer individually.
 makeRenderPipeline :: forall τ info tops descs strides
