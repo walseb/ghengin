@@ -8,8 +8,8 @@ with pkgs;
 mkShell ({
   name = "ghengin";
   packages = [
-    haskell.compiler.ghc910
-    haskell.packages.ghc910.cabal-install
+    haskell.compiler.ghc912
+    haskell.packages.ghc912.cabal-install
     pkg-config
     zlib
     glfw
@@ -39,10 +39,10 @@ mkShell ({
     xorg.libXinerama
 
     # debugging
-    gdb
-    libelf
-    libdwarf
-    elfutils
+    # gdb
+    # libelf
+    # libdwarf
+    # elfutils
   ])
   ;
 

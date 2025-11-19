@@ -1,9 +1,8 @@
 packages:
-          ./packaging-macos/
-          ./ghengin/
           ./examples/
           ./ghengin-core/
           ./linear-utils/
+          ./ghengin/
 
           /home/admin/root/dep/hs-root/dep/alpaca-netcode
           /home/admin/root/dep/hs-root/dep/hs-adapter-simple
