@@ -117,13 +117,13 @@ instance KnownSymbol name => ShaderData (StructFloat name) where
   type FirType (StructFloat name) = FIR.Struct '[ name 'FIR.:-> Float ]
   
 -- ** FIR Vector
-instance (KnownNat n, Block x, Storable x) => Block (V n x) where
+instance (KnownNat n, Storable x, Block x) => Block (V n x) where
   type PackedSize (V n x) = n * (PackedSize x)
 
-  alignment140 _ = Store.alignment (undefined :: (V n x))
+  alignment140 _ = Store.alignment (undefined :: V n x)
   alignment430 = alignment140
 
-  sizeOf140 _ = Store.sizeOf (undefined :: (V n x))
+  sizeOf140 _ = Store.sizeOf (undefined :: V n x)
   sizeOf430 = sizeOf140
   sizeOfPacked = sizeOf140
 
@@ -134,6 +134,9 @@ instance (KnownNat n, Block x, Storable x) => Block (V n x) where
   write140 p o a = liftIO $ pokeDiffOff p o a
   write430 = write140
   writePacked = write140
+
+instance (KnownNat n, Block x, Storable x) => ShaderData (V n x) where
+  type FirType (V n x) = V n x
 
 type StructV :: Nat -> Type -> Symbol -> Type
 newtype StructV n x name = StructV (V n x)
@@ -148,7 +151,7 @@ instance (KnownNat n, Block x, Storable x, KnownSymbol name) => ShaderData (Stru
   type FirType (StructV n x name) = FIR.Struct '[ name 'FIR.:-> V n x ]
 
 -- ** FIR Matrix
-instance (KnownNat m, KnownNat n, Block x, Storable x) => Block (M m n x) where
+instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
   type PackedSize (M m n x) = m * n * (PackedSize x)
 
   alignment140 _ = Store.alignment (undefined :: M m n x)
@@ -165,6 +168,9 @@ instance (KnownNat m, KnownNat n, Block x, Storable x) => Block (M m n x) where
   write140 p o a = liftIO $ pokeDiffOff p o a
   write430 = write140
   writePacked = write140
+
+instance (KnownNat m, KnownNat n, Block x, Storable x) => ShaderData (M m n x) where
+  type FirType (M m n x) = M m n x
 
 type StructM :: Nat -> Nat -> Type -> Symbol -> Type
 newtype StructM m n x name = StructM (M m n x)
