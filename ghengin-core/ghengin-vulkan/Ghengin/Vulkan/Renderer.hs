@@ -243,9 +243,7 @@ validationLayers = [
 -- We must be careful: if we're releasing our game bundled with the dynamic
 -- libraries (e.g. using ghengin-dist-macos), we cannot use a validation layer
 -- because those aren't bundled.
-#ifdef DEBUG
                     "VK_LAYER_KHRONOS_validation"
-#endif
                    ]
 
 deviceExtensions :: Vector ByteString
