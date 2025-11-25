@@ -12,8 +12,8 @@ build-type:         Simple
 extra-doc-files:    ../CHANGELOG.md
 
 flag dev
-  default: True
-  manual: True
+  default: False
+  -- manual: True
   description: This flag controls development settings and should be manually disabled when the game is being built for release. The ghengin packaging tools will take care to set this flag to false when packaging.
                When enabled, vulkan validation layers are enabled.
                Run `cabal build -f-dev` to build with the flag disabled.
