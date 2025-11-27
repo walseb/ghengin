@@ -12,6 +12,7 @@ The working examples are the following. In sequence, they build up to a
 Cooler examples:
 
 * `planets-core` implements Sebastian Lague's procedural planets
+* `teapot-obj` renders the Utah teapot using Blinn-Phong lighting and a perspective camera
 
 Solid examples:
 
@@ -21,6 +22,7 @@ Solid examples:
 * `simple-camera` example of camera with projection
 * `full-pipeline` a full shader pipeline example ported from [FIR](https://gitlab.com/sheaf/fir)
 * `function-drawing` attempt at drawing functions using shaders
+* `dear-imgui` is a trivial demo which setups and renders the DearImGui demo window
 
 Experimental examples:
 
