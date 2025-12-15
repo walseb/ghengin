@@ -307,7 +307,7 @@ class HasPropertyAt' n m φ α β where
   -- propertyAt' :: Linear.Functor f => (β %p -> f (Renderer β)) %x -> (φ α ⊸ f (Renderer (φ α)))
   propertyAt' :: (β' ~ PBInv β) => (β' ⊸ Renderer β') %x -> (φ α ⊸ Renderer (φ α))
 
-instance (Unsatisfiable (Text "The requested property " :<>: ShowType α :<>: Text " does not exist in the properties list" {- :<>: ShowType α -})) => HasPropertyAt' n n' φ '[] α where
+instance (Unsatisfiable (Text "The requested property " :<>: ShowType α :<>: Text " does not exist in the properties list: " :<>: ShowType α)) => HasPropertyAt' n n' φ '[] α where
   propertyAt' = unsatisfiable
 
 -- This instance should always overlap the recursive instance below because we
