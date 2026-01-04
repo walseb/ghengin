@@ -21,7 +21,7 @@ import Geomancy.Mat4
 import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff)
 import Foreign.Storable as Store
 
-import Ghengin.Core.Prelude (Float, Generic, ($), undefined)
+import Ghengin.Core.Prelude (Bool, Float, Generic, ($), undefined)
 
 import Control.Monad.IO.Class (liftIO)
 
@@ -61,6 +61,9 @@ type FragmentShaderModule defs
 --
 -- @
 
+instance ShaderData Bool where
+  type FirType Bool = Bool
+
 instance ShaderData Float where
   type FirType Float = Float
 
@@ -76,9 +79,7 @@ instance ShaderData Vec4 where
 instance ShaderData Mat4 where
   type FirType Mat4 = M 4 4 Float
 
---------------------------------------------------------------------------------
-
--- ** FIR Vector
+-- FIR Vector
 instance (KnownNat n, Storable x, Block x) => Block (V n x) where
   type PackedSize (V n x) = n * (PackedSize x)
   isStruct _ = FIR.False
@@ -101,7 +102,7 @@ instance (KnownNat n, Storable x, Block x) => Block (V n x) where
 instance (KnownNat n, Block x, Storable x) => ShaderData (V n x) where
   type FirType (V n x) = V n x
 
--- ** FIR Matrix
+-- FIR Matrix
 instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
   type PackedSize (M m n x) = m * n * (PackedSize x)
   isStruct _ = FIR.False

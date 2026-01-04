@@ -77,11 +77,3 @@ deriving anyclass instance (KnownNat (PackedSize a), Block a) => Block (InStruct
 
 instance (KnownNat (PackedSize a), Block a) => ShaderData (InStruct field a) where
   type FirType (InStruct field a) = FIR.Struct '[ field 'FIR.:-> FirType a ]
-
---------------------------------------------------------------------------------
--- * Basic instances
---------------------------------------------------------------------------------
-
-instance ShaderData Bool where
-  type FirType Bool = Bool
-
