@@ -21,7 +21,8 @@ import Geomancy.Mat4
 import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff)
 import Foreign.Storable as Store
 
-import Ghengin.Core.Prelude (Bool, Float, Generic, ($), undefined)
+import Data.Word (Word16)
+import Ghengin.Core.Prelude (Bool, Word32, Float, Generic, ($), undefined)
 
 import Control.Monad.IO.Class (liftIO)
 
@@ -63,6 +64,13 @@ type FragmentShaderModule defs
 
 instance ShaderData Bool where
   type FirType Bool = Bool
+
+-- This needs to be merged for Word16 to work https://gitlab.com/dpwiz/gl-block/-/merge_requests/1
+instance ShaderData Word16 where
+  type FirType Word16 = Word16
+
+instance ShaderData Word32 where
+  type FirType Word32 = Word32
 
 instance ShaderData Float where
   type FirType Float = Float
