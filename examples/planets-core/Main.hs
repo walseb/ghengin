@@ -44,7 +44,6 @@ import Ghengin.Core.Render.Property
 import Ghengin.Vulkan.Renderer.Sampler
 import Ghengin.Core.Render.Queue
 import Ghengin.Core.Input
-import Ghengin.Core.Shader (StructVec3(..), StructMat4(..))
 import Vulkan.Core10.FundamentalTypes (Extent2D(..))
 import qualified Data.Monoid.Linear as LMon
 import qualified FIR
