@@ -27,7 +27,6 @@ import Ghengin.Core.Render.Packet
 import Ghengin.Core.Render.Pipeline
 import Ghengin.Core.Render.Property
 import Ghengin.Core.Render.Queue
-import Ghengin.Core.Shader (StructVec2(..), StructVec3(..), StructMat4(..), StructFloat(..))
 import Ghengin.Core.Shader.Data
 import Ghengin.Core.Type.Compatible
 import Ghengin.Vulkan.Renderer.Sampler
@@ -57,12 +56,12 @@ viewportIndices
     ]
 
 newtype MousePos = MousePos Vec2
-  deriving ShaderData via (StructVec2 "mousePos")
+  deriving ShaderData via (InStruct "mousePos" Vec2)
   deriving Generic
   deriving anyclass Block
 
 newtype Time = Time Float
-  deriving ShaderData via (StructFloat "val")
+  deriving ShaderData via (InStruct "val" Float)
   deriving Generic
   deriving anyclass Block
 
