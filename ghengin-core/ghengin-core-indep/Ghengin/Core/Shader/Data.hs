@@ -16,6 +16,17 @@ import Graphics.Gl.Block
 import qualified FIR as FIR
 import FIR.Layout as L
 
+import Foreign.Storable as Store
+import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff)
+import Control.Monad.IO.Class (liftIO)
+
+import Data.Word (Word16, Word32)
+import Geomancy.Vec2
+import Geomancy.Vec3
+import Geomancy.Vec4
+import Geomancy.Mat4
+import Math.Linear (M, V)
+
 -- | The class which powers all of the serialization and compatibility logic
 -- between CPU and GPU data types.
 --
@@ -78,10 +89,94 @@ deriving anyclass instance (KnownNat (PackedSize a), Block a) => Block (InStruct
 instance (KnownNat (PackedSize a), Block a) => ShaderData (InStruct field a) where
   type FirType (InStruct field a) = FIR.Struct '[ field 'FIR.:-> FirType a ]
 
---------------------------------------------------------------------------------
--- * Basic instances
---------------------------------------------------------------------------------
+-- * Instances for ShaderData
+--
+-- | The following instances are supposed to be used with deriving via:
+--
+-- Example
+--
+-- @
+-- -- Internal type will be Struct [ "v" :-> V 3 Float ]
+-- newtype CameraPos = CP Vec3 deriving ShaderData via (InStruct "v" Vec3)
+-- @
+--
+-- There is also an instance of Syntactic for n-ary products of syntactic things like Mat and Vec,
+-- so we can easily create instances for compound structs! (We need to use
+-- generic here I think, since deriving via won't coerce between SOP and datatypes)
+--
+-- Example
+-- 
+-- @
+--
+-- @
 
 instance ShaderData Bool where
   type FirType Bool = Bool
 
+-- This needs to be merged for Word16 to work https://gitlab.com/dpwiz/gl-block/-/merge_requests/1
+instance ShaderData Word16 where
+  type FirType Word16 = Word16
+
+instance ShaderData Word32 where
+  type FirType Word32 = Word32
+
+instance ShaderData Float where
+  type FirType Float = Float
+
+instance ShaderData Vec2 where
+  type FirType Vec2 = V 2 Float
+
+instance ShaderData Vec3 where
+  type FirType Vec3 = V 3 Float
+
+instance ShaderData Vec4 where
+  type FirType Vec4 = V 4 Float
+
+instance ShaderData Mat4 where
+  type FirType Mat4 = M 4 4 Float
+
+-- FIR Vector
+instance (KnownNat n, Storable x, Block x) => Block (V n x) where
+  type PackedSize (V n x) = n * (PackedSize x)
+  isStruct _ = FIR.False
+
+  alignment140 _ = Store.alignment (undefined :: V n x)
+  alignment430 = alignment140
+
+  sizeOf140 _ = Store.sizeOf (undefined :: V n x)
+  sizeOf430 = sizeOf140
+  sizeOfPacked = sizeOf140
+
+  read140 p o = liftIO $ peekDiffOff p o
+  read430 = read140
+  readPacked = read140
+
+  write140 p o a = liftIO $ pokeDiffOff p o a
+  write430 = write140
+  writePacked = write140
+
+instance (KnownNat n, Block x, Storable x) => ShaderData (V n x) where
+  type FirType (V n x) = V n x
+
+-- FIR Matrix
+instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
+  type PackedSize (M m n x) = m * n * (PackedSize x)
+  isStruct _ = FIR.False
+
+  alignment140 _ = Store.alignment (undefined :: M m n x)
+  alignment430 = alignment140
+
+  sizeOf140 _ = Store.sizeOf (undefined :: M m n x)
+  sizeOf430 = sizeOf140
+  sizeOfPacked = sizeOf140
+
+  read140 p o = liftIO $ peekDiffOff p o
+  read430 = read140
+  readPacked = read140
+
+  write140 p o a = liftIO $ pokeDiffOff p o a
+  write430 = write140
+  writePacked = write140
+
+instance (KnownNat m, KnownNat n, Block x, Storable x) => ShaderData (M m n x) where
+  type FirType (M m n x) = M m n x
