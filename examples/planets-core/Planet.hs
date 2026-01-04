@@ -44,6 +44,8 @@ import Codec.Picture
 
 import Planet.Noise
 
+import FIR.Prim.Image (ImageCoordinateKind(..))
+
 --------------------------------------------------------------------------------
 -- * Planet
 --------------------------------------------------------------------------------
@@ -137,7 +139,7 @@ newPlanetMesh rp Planet{..} = Linear.do
 -- * Material
 --------------------------------------------------------------------------------
 
-type PlanetMaterialAttrs = '[MinMax, Texture2D (RGBA8 UNorm) Float]
+type PlanetMaterialAttrs = '[MinMax, Texture2D (RGBA8 UNorm) FloatingPointCoordinates Float Sampled]
 type PlanetMaterial = Material PlanetMaterialAttrs
 
 data PlanetColor = PlanetColor
@@ -171,7 +173,7 @@ data PlanetBiome = PlanetBiome
   deriving anyclass Default
 
 newPlanetMaterial :: forall π p
-                   . CompatibleMaterial '[MinMax, Texture2D (RGBA8 UNorm) Float] π
+                   . CompatibleMaterial '[MinMax, Texture2D (RGBA8 UNorm) FloatingPointCoordinates Float Sampled] π
                   => MinMax
                   -> RenderPipeline π p
                    ⊸ Planet
@@ -181,7 +183,7 @@ newPlanetMaterial mm pl planet = Linear.do
   material @_ @π (StaticBinding (Ur mm) :## Texture2DBinding tex :## GHNil) pl
 
 -- | Make a Texture from the planet color
-planetTexture :: PlanetColor -> Renderer (Alias (Texture2D (RGBA8 UNorm) Float))
+planetTexture :: PlanetColor -> Renderer (Alias (Texture2D (RGBA8 UNorm) FloatingPointCoordinates Float Sampled))
 planetTexture PlanetColor{planetBiomes, planetColorsInterpolate} = Linear.do
   sampler <- createSampler FILTER_LINEAR{-FILTER_NEAREST-} SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
 

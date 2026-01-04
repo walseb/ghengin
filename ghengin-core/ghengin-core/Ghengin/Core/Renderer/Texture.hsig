@@ -13,15 +13,17 @@ import Codec.Picture
 
 import Ghengin.Core.Type.Compatible.Pixel
 
-type Texture2D :: ImageFormat Nat -> Type -> Type
-data Texture2D (fmt :: ImageFormat Nat) texelTy
+import FIR.Prim.Image
+
+type Texture2D :: ImageFormat Nat -> ImageCoordinateKind -> Type -> ImageUsage -> Type
+data Texture2D (fmt :: ImageFormat Nat) (coordTy :: ImageCoordinateKind) texelTy (usage :: ImageUsage)
 
 
-texture :: FilePath -> Alias Sampler ⊸ Renderer (Alias (Texture2D (RGBA8 UNorm) Float))
+texture :: FilePath -> Alias Sampler ⊸ Renderer (Alias (Texture2D (RGBA8 UNorm) FloatingPointCoordinates Float Sampled))
 
-textureFromDynamicImage :: DynamicImage -> Alias Sampler ⊸ Renderer (Alias (Texture2D (RGBA8 UNorm) Float))
+textureFromDynamicImage :: DynamicImage -> Alias Sampler ⊸ Renderer (Alias (Texture2D (RGBA8 UNorm) FloatingPointCoordinates Float Sampled))
 
 newTexture :: (Pixel px, Typeable px, CompatiblePixel px fmt)
-           => Codec.Picture.Image px -> Alias Sampler %1 -> Renderer (Alias (Texture2D fmt texelTy))
+           => Codec.Picture.Image px -> Alias Sampler %1 -> Renderer (Alias (Texture2D fmt coordTy texelTy usage))
 
-freeTexture :: Texture2D fmt texelTy ⊸ Renderer ()
+freeTexture :: Texture2D fmt coordTy texelTy usage ⊸ Renderer ()

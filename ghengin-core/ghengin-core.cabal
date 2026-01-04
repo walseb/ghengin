@@ -33,7 +33,7 @@ common common-flags
         -- -fcmm-thread-sanitizer
 
     cpp-options:
-        -DDEBUG
+        -- -DDEBUG
         -- -DDEBUG_TRACE
         -- -DTHINGS_ARE_GOING_THAT_BAD
         -- -DDEBUG_WRITE_SHADERS

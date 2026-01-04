@@ -80,7 +80,7 @@ type ResourceMap = IntMap DescriptorResource
 data DescriptorResource where
   UniformResource   :: Alias MappedBuffer ⊸ DescriptorResource
   StorageResource   :: Alias MappedBuffer ⊸ DescriptorResource
-  Texture2DResource :: Alias (Texture2D fmt texelTy) ⊸ DescriptorResource
+  Texture2DResource :: Alias (Texture2D fmt coordTy texelTy usage) ⊸ DescriptorResource
 
 instance Forgettable Renderer DescriptorResource where
   forget = \case
@@ -155,6 +155,7 @@ descriptorType = \case
   SPIRV.PointerTy SPIRV.Storage.StorageBuffer _ -> Vk.DESCRIPTOR_TYPE_STORAGE_BUFFER
   -- SPIRV.PointerTy SPIRV.Storage.UniformConstant SPIRV.Sampler -> Vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
   SPIRV.PointerTy SPIRV.Storage.UniformConstant (SPIRV.SampledImage _) -> Vk.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+  SPIRV.PointerTy SPIRV.Storage.UniformConstant (SPIRV.Image _) -> Vk.DESCRIPTOR_TYPE_STORAGE_IMAGE
   x -> error $ "Unexpected/unsupported descriptor set #1 descriptor type: " <> show x
 
 ---------------------

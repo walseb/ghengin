@@ -114,30 +114,30 @@ The "fast" version from http://www.codersnotes.com/notes/welding-vertices/
 You typically want to call this before 'computeNormals' if a mesh has
 overlapping vertices which don't connect, otherwise the smooth normals won't look fine.
 -}
-weldVertices :: (GV.Vector v Vec3, GV.Vector w Int) => v Vec3 -> w Int -> w Int
-weldVertices vxs ixs =
+-- weldVertices :: (GV.Vector v Vec3, GV.Vector w Int) => v Vec3 -> w Int -> w Int
+-- weldVertices vxs ixs =
 
-  -- The "fast" version
-  let threshold = 0.00001
-      vxs_sorted = V.fromList (L.sortOn fst (GV.toList vxs `Prelude.zip` [0..]))
-      vec3X (WithVec3 x _ _) = x
-      go va a_ix a b
-        | b < 0 = IM.empty
-        | vec3X (fst (vxs_sorted V.! b)) < (vec3X va - threshold)
-        = IM.empty -- shortcut
-        | P.distance (P.Point va) (P.Point (fst (vxs_sorted V.! b))) < threshold
-        = IM.singleton (snd (vxs_sorted V.! b)) a_ix `IM.union` go va a_ix a (b-1)
-        | otherwise
-        = go va a_ix a (b-1)
-      mapping =
-        IM.unions
-          [ go va a_ix a (a-1)
-          | ((va, a_ix), a) <- Prelude.zip (GV.toList vxs_sorted) [0..]
-          ]
-   in GV.map (\ix -> case IM.lookup ix mapping of
-                Nothing -> ix
-                Just other -> other
-             ) ixs
+--   -- The "fast" version
+--   let threshold = 0.00001
+--       vxs_sorted = V.fromList (L.sortOn fst (GV.toList vxs `Prelude.zip` [0..]))
+--       vec3X (WithVec3 x _ _) = x
+--       go va a_ix a b
+--         | b < 0 = IM.empty
+--         | vec3X (fst (vxs_sorted V.! b)) < (vec3X va - threshold)
+--         = IM.empty -- shortcut
+--         | P.distance (P.Point va) (P.Point (fst (vxs_sorted V.! b))) < threshold
+--         = IM.singleton (snd (vxs_sorted V.! b)) a_ix `IM.union` go va a_ix a (b-1)
+--         | otherwise
+--         = go va a_ix a (b-1)
+--       mapping =
+--         IM.unions
+--           [ go va a_ix a (a-1)
+--           | ((va, a_ix), a) <- Prelude.zip (GV.toList vxs_sorted) [0..]
+--           ]
+--    in GV.map (\ix -> case IM.lookup ix mapping of
+--                 Nothing -> ix
+--                 Just other -> other
+--              ) ixs
 
   -- The "slow" version
   {-
