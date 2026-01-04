@@ -15,14 +15,11 @@ import GHC.TypeLits
 import Ghengin.Core.Shader.Canonical
 import Ghengin.Core.Shader.Pipeline
 
--- import Ghengin.Core.Prelude (Bool, Word32, Float, Generic, ($), undefined)
 import Ghengin.Core.Prelude (Float)
 
 import Math.Linear
 import qualified FIR
 import qualified Data.Type.Map as M
-
--- import Ghengin.Core.Shader.Data
 
 type VertexShaderModule defs
   = FIR.ShaderModule "main" FIR.VertexShader
