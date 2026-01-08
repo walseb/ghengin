@@ -4,6 +4,7 @@
 module Ghengin.Core.Shader.Data
   ( ShaderData(..)
   , InStruct(..)
+  , InStructLit(..)
     -- ** Re-exports
   , Poke(..), Layout(..)
   ) where
@@ -88,6 +89,15 @@ deriving anyclass instance (KnownNat (PackedSize a), Block a) => Block (InStruct
 
 instance (KnownNat (PackedSize a), Block a) => ShaderData (InStruct field a) where
   type FirType (InStruct field a) = FIR.Struct '[ field 'FIR.:-> FirType a ]
+
+-- Literal version of InStruct. Use this when you want to put a literals inside of a single field struct.
+newtype InStructLit (field :: Symbol) a = InStructLit a
+  deriving stock Generic
+
+deriving anyclass instance (KnownNat (PackedSize a), Block a) => Block (InStructLit field a)
+
+instance (KnownNat (PackedSize a), Block a) => ShaderData (InStructLit field a) where
+  type FirType (InStructLit field a) = FIR.Struct '[ field 'FIR.:-> a ]
 
 -- * Instances for ShaderData
 --
