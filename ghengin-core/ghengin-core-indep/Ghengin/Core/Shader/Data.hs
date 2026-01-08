@@ -21,6 +21,7 @@ import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff)
 import Control.Monad.IO.Class (liftIO)
 
 import Data.Word (Word16, Word32)
+import Data.Int (Int32)
 import Geomancy.Vec2
 import Geomancy.Vec3
 import Geomancy.Vec4
@@ -120,8 +121,14 @@ instance ShaderData Word16 where
 instance ShaderData Word32 where
   type FirType Word32 = Word32
 
+instance ShaderData Int32 where
+  type FirType Int32 = Int32
+
 instance ShaderData Float where
   type FirType Float = Float
+
+instance ShaderData Double where
+  type FirType Double = Double
 
 instance ShaderData Vec2 where
   type FirType Vec2 = V 2 Float
