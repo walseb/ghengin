@@ -43,11 +43,11 @@ main = do
     (rp1, rp2) <- Alias.share =<< createSimpleRenderPass
 
     pipeline <- makeRenderPipeline rp1 shaderPipelineColors GHNil
-    (emptyMat, pipeline) <- material GHNil pipeline
-    (mesh, pipeline) <- createMeshWithIxs pipeline GHNil triangleVerticesWithColors [0, 1, 2]
-    (rq, Ur pkey)    <- pure (insertPipeline pipeline LMon.mempty)
-    (rq, Ur mkey)    <- pure (insertMaterial pkey emptyMat rq)
-    (rq, Ur mshkey)  <- pure (insertMesh mkey mesh rq)
+    (emptyMat, pipeline)   <- material GHNil pipeline
+    (mesh, pipeline, Ur _) <- createMeshWithIxs pipeline GHNil triangleVerticesWithColors [0, 1, 2]
+    (rq, Ur pkey)          <- pure (insertPipeline pipeline LMon.mempty)
+    (rq, Ur mkey)          <- pure (insertMaterial pkey emptyMat rq)
+    (rq, Ur mshkey)        <- pure (insertMesh mkey mesh rq)
 
     rq <- gameLoop rp2 rq
 

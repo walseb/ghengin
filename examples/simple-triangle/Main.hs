@@ -46,7 +46,7 @@ main = do
 
     pipeline <- makeRenderPipeline rp1 shaderPipelineSimple GHNil
     (emptyMat, pipeline) <- material GHNil pipeline
-    (mesh, pipeline) <- createMesh pipeline GHNil triangleVertices
+    (mesh, pipeline, Ur _) <- createMesh pipeline GHNil triangleVertices
     (rq, Ur pkey)    <- pure (insertPipeline pipeline LMon.mempty)
     (rq, Ur mkey)    <- pure (insertMaterial pkey emptyMat rq)
     (rq, Ur mshkey)  <- pure (insertMesh mkey mesh rq)

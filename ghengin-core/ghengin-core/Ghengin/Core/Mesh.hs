@@ -13,10 +13,14 @@ module Ghengin.Core.Mesh
 
   , meshId
 
+  , simpleMeshOptsDef
+  , indexedMeshOptsDef
+
   -- * Vertices
   , module Ghengin.Core.Mesh.Vertex
   ) where
 
+import Ghengin.Core.Renderer.Command (SimpleMeshOpts(..), IndexedMeshOpts(..))
 import Ghengin.Core.Prelude as Linear
 import Data.Unique
 
@@ -51,11 +55,13 @@ data Mesh ts props where
                 -- , vertices :: Vector Vertex
               ⊸ (Alias DescriptorSet, Alias ResourceMap) -- ^ Descriptors for property bindings
               ⊸ !Unique
+             -> IORef SimpleMeshOpts
              -> Mesh ts '[]
   IndexedMesh :: !VertexBuffer -- ^ vertexBuffer, a vector of vertices in buffer format
                ⊸ !Index32Buffer
                ⊸ (Alias DescriptorSet, Alias ResourceMap) -- ^ Descriptors for property bindings
                ⊸ !Unique
+              -> IORef IndexedMeshOpts
               -> Mesh ts '[]
   MeshProperty :: forall p vs ps
                 . PropertyBinding p
@@ -66,8 +72,8 @@ meshId :: Mesh ts props ⊸ (Ur Unique, Mesh ts props)
 meshId = \case
   MeshProperty p xs -> case meshId xs of
     (uq, xs') -> (uq, MeshProperty p xs')
-  SimpleMesh vb ds uq -> (Ur uq, SimpleMesh vb ds uq)
-  IndexedMesh vb ib ds uq -> (Ur uq, IndexedMesh vb ib ds uq)
+  SimpleMesh vb ds uq opt -> (Ur uq, SimpleMesh vb ds uq opt)
+  IndexedMesh vb ib ds uq opt -> (Ur uq, IndexedMesh vb ib ds uq opt)
 
 instance HasProperties (Mesh vs) where
   properties :: Mesh vs ps ⊸ Renderer (PropertyBindings ps, Mesh vs ps)
@@ -76,18 +82,18 @@ instance HasProperties (Mesh vs) where
       (p1, p2) <- Alias.share p0
       (xs', mesh') <- properties xs
       pure (p1 :## xs', MeshProperty p2 mesh')
-    SimpleMesh a b c -> pure (GHNil, SimpleMesh a b c)
-    IndexedMesh a b c d -> pure (GHNil, IndexedMesh a b c d)
+    SimpleMesh a b c d -> pure (GHNil, SimpleMesh a b c d)
+    IndexedMesh a b c d e -> pure (GHNil, IndexedMesh a b c d e)
 
   descriptors = \case
-    SimpleMesh vb (ds0, rm0) uq -> Linear.do
+    SimpleMesh vb (ds0, rm0) uq opt -> Linear.do
       (ds1, ds2) <- Alias.share ds0
       (rm1, rm2) <- Alias.share rm0
-      pure (ds1, rm1, SimpleMesh vb (ds2, rm2) uq)
-    IndexedMesh vb ib (ds0, rm0) uq -> Linear.do
+      pure (ds1, rm1, SimpleMesh vb (ds2, rm2) uq opt)
+    IndexedMesh vb ib (ds0, rm0) uq opt -> Linear.do
       (ds1, ds2) <- Alias.share ds0
       (rm1, rm2) <- Alias.share rm0
-      pure (ds1, rm1, IndexedMesh vb ib (ds2, rm2) uq)
+      pure (ds1, rm1, IndexedMesh vb ib (ds2, rm2) uq opt)
     MeshProperty p xs -> Linear.do
       (dset, rmap, mesh') <- descriptors xs
       pure (dset, rmap, MeshProperty p mesh')
@@ -96,6 +102,21 @@ instance HasProperties (Mesh vs) where
   pcons = MeshProperty
 
       -- TODO: Various kinds of meshes: indexed meshes, strip meshes, just triangles...
+
+simpleMeshOptsDef = SimpleMeshOpts {
+  vertexCount = Nothing
+  , firstVertex = 0
+  , instanceCount = 1
+  , firstInstance = 0
+  }
+
+indexedMeshOptsDef = IndexedMeshOpts {
+  indexCount = Nothing
+  , firstIndex = 0
+  , instanceCount = 1
+  , firstInstance = 0
+  , vertexOffset = 0
+  }
 
 -- | Create a 'Mesh' given a list of 'Vertex's, where each 'Vertex' has a set
 -- of properties of types @ts@ (e.g. a Vec3 for position and a Vec3 for color).
@@ -117,24 +138,25 @@ createMesh :: (CompatibleMesh props π, CompatibleVertex ts π, Storable (Vertex
             -- ^ The 'PropertyBindings' for the properties of this mesh (the second type argument to 'Mesh')
             ⊸ [Vertex ts]
             -- ^ Vertices
-           -> Renderer (Mesh ts props, RenderPipeline π bs)
+           -> Renderer (Mesh ts props, RenderPipeline π bs, Ur (IORef SimpleMeshOpts))
 createMesh a b c = createMeshSV a b (SV.fromList c)
 
 -- | Like 'createMesh', but takes a storable vector directly rather than a list.
 createMeshSV
   :: (CompatibleMesh props π, CompatibleVertex ts π, Storable (Vertex ts))
   => RenderPipeline π bs ⊸ PropertyBindings props ⊸ SV.Vector (Vertex ts)
-  -> Renderer (Mesh ts props, RenderPipeline π bs)
-createMeshSV (RenderProperty pr rps) props0 vs = createMeshSV rps props0 vs >>= \case (m, rp) -> pure (m, RenderProperty pr rp)
+  -> Renderer (Mesh ts props, RenderPipeline π bs, Ur (IORef SimpleMeshOpts))
+createMeshSV (RenderProperty pr rps) props0 vs = createMeshSV rps props0 vs >>= \case (m, rp, opt) -> pure (m, RenderProperty pr rp, opt)
 createMeshSV (RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool0) shaders uq) props0 vs = enterD "createMesh" Linear.do
+  (Ur opt) <- liftIO $ newIORef simpleMeshOptsDef
   Ur uniq      <- liftSystemIOU newUnique
   vertexBuffer <- createVertexBuffer vs
 
   (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes bmap dpool0 props0
 
-  pure ( mkMesh (SimpleMesh vertexBuffer (dset0, rmap0) uniq) props1
+  pure ( mkMesh (SimpleMesh vertexBuffer (dset0, rmap0) uniq opt) props1
        , RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool1) shaders uq
-       )
+       , Ur opt )
 
 -- | Like 'createMesh', but create the mesh using a vertex buffer created from
 -- the vertices and an indexbuffer created from the indices
@@ -154,25 +176,26 @@ createMeshWithIxs :: (CompatibleMesh props π, CompatibleVertex ts π, Storable 
                   -- ^ Vertices
                   -> [Int32]
                   -- ^ Indices
-                  -> Renderer (Mesh ts props, RenderPipeline π bs)
+                  -> Renderer (Mesh ts props, RenderPipeline π bs, Ur (IORef IndexedMeshOpts))
 createMeshWithIxs a b c d = createMeshWithIxsSV a b (SV.fromList c) (SV.fromList d)
 
 createMeshWithIxsSV
   :: (CompatibleMesh props π, CompatibleVertex ts π, Storable (Vertex ts))
   => RenderPipeline π bs ⊸ PropertyBindings props
    ⊸ SV.Vector (Vertex ts) -> SV.Vector Int32
-  -> Renderer (Mesh ts props, RenderPipeline π bs)
-createMeshWithIxsSV (RenderProperty pr rps) props0 vs ixs = createMeshWithIxsSV rps props0 vs ixs >>= \case (m, rp) -> pure (m, RenderProperty pr rp)
+  -> Renderer (Mesh ts props, RenderPipeline π bs, Ur (IORef IndexedMeshOpts))
+createMeshWithIxsSV (RenderProperty pr rps) props0 vs ixs = createMeshWithIxsSV rps props0 vs ixs >>= \case (m, rp, opt) -> pure (m, RenderProperty pr rp, opt)
 createMeshWithIxsSV (RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool0) shaders uq) props0 vertices ixs = enterD "createMeshWithIxs" Linear.do
+  (Ur opt) <- liftIO $ newIORef indexedMeshOptsDef
   Ur uniq      <- liftSystemIOU newUnique
   vertexBuffer <- createVertexBuffer vertices
   indexBuffer  <- createIndex32Buffer ixs
 
   (dset0, rmap0, dpool1, props1) <- allocateDescriptorsForMeshes bmap dpool0 props0
 
-  pure ( mkMesh (IndexedMesh vertexBuffer indexBuffer (dset0, rmap0) uniq) props1
+  pure ( mkMesh (IndexedMesh vertexBuffer indexBuffer (dset0, rmap0) uniq opt) props1
        , RenderPipeline gpip rpass (rdset, rres, (Ur bmap), dpool1) shaders uq
-       )
+       , Ur opt )
 
 mkMesh :: ∀ t b. Mesh t '[] ⊸ PropertyBindings b ⊸ Mesh t b
 mkMesh x GHNil = x
@@ -208,9 +231,9 @@ freeMesh :: Mesh vs ps ⊸ Renderer ()
 freeMesh mesh = Linear.do
   logD "Freeing mesh..."
   case mesh of
-    SimpleMesh (VertexBuffer vb _) ds _ ->
+    SimpleMesh (VertexBuffer vb _) ds _ _ ->
       Alias.forget ds >> destroyDeviceLocalBuffer vb
-    IndexedMesh (VertexBuffer vb _) (Index32Buffer ib _) ds _ ->
+    IndexedMesh (VertexBuffer vb _) (Index32Buffer ib _) ds _ _ ->
       Alias.forget ds >> destroyDeviceLocalBuffer vb >> destroyDeviceLocalBuffer ib
     MeshProperty prop xs ->
       Alias.forget prop >> freeMesh xs

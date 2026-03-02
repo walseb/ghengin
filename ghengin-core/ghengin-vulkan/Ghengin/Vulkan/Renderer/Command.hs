@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UnicodeSyntax #-}
 {-# LANGUAGE BlockArguments #-}
@@ -58,12 +59,16 @@ module Ghengin.Vulkan.Renderer.Command
   , unsafeCmd_
   , unsafeRenderPassCmd
   , unsafeRenderPassCmd_
+  , SimpleMeshOpts(..)
+  , IndexedMeshOpts(..)
   ) where
 
 import GHC.TypeLits
 
+import Data.IORef
+
 import Prelude hiding (($), pure, return)
-import Prelude.Linear (($))
+import Prelude.Linear (($), Ur(..), fromMaybe)
 import qualified Prelude.Linear as Linear ((.))
 
 import qualified Data.V.Linear as V
@@ -82,6 +87,8 @@ import qualified Data.Vector as Vector
 import qualified Vulkan.CStruct.Extends as Vk
 import qualified Vulkan.Zero as Vk
 import qualified Vulkan      as Vk
+
+import Data.Int (Int32)
 
 import Ghengin.Vulkan.Renderer.Device
 import {-# SOURCE #-} Ghengin.Vulkan.Renderer.RenderPass
@@ -293,12 +300,12 @@ bindIndex32Buffer :: Linear.MonadIO m
 bindIndex32Buffer ibuffer offset = unsafeRenderPassCmd ibuffer (\buf ibuf -> Vk.cmdBindIndexBuffer buf ibuf offset Vk.INDEX_TYPE_UINT32)
 {-# INLINE bindIndex32Buffer #-}
 
-draw :: Linear.MonadIO m => Word32 -> RenderPassCmd m
-draw vertexCount = unsafeRenderPassCmd_ (\buf -> Vk.cmdDraw buf vertexCount 1 0 0)
+draw :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> RenderPassCmd m
+draw vertexCount firstVertex instanceCount firstInstance = unsafeRenderPassCmd_ (\buf -> Vk.cmdDraw buf vertexCount instanceCount firstVertex firstInstance)
 {-# INLINE draw #-}
 
-drawIndexed :: Linear.MonadIO m => Word32 -> RenderPassCmd m
-drawIndexed ixCount = unsafeRenderPassCmd_ $ \buf -> Vk.cmdDrawIndexed buf ixCount 1 0 0 0
+drawIndexed :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> Int32 -> RenderPassCmd m
+drawIndexed indexCount firstIndex instanceCount firstInstance vertexOffset = unsafeRenderPassCmd_ $ \buf -> Vk.cmdDrawIndexed buf indexCount instanceCount firstIndex vertexOffset firstInstance
 {-# INLINE drawIndexed #-}
 
 copyFullBuffer :: Linear.MonadIO m => Vk.Buffer ⊸ Vk.Buffer ⊸ Vk.DeviceSize -> CommandM m (Vk.Buffer, Vk.Buffer)
@@ -430,20 +437,39 @@ transitionImageLayout img srcLayout dstLayout =
 -- Ultimately, I think it will be about a good abstraction for issuing/batching
 -- draw call.
 
+data SimpleMeshOpts = SimpleMeshOpts {
+  -- Nothing means use the vertex count of the mesh
+  vertexCount :: Maybe Word32
+  , firstVertex :: Word32
+  , instanceCount :: Word32
+  , firstInstance :: Word32
+  }
 
-drawVertexBuffer :: Linear.MonadIO m => VertexBuffer ⊸ RenderPassCmdM m VertexBuffer
-drawVertexBuffer (VertexBuffer (DeviceLocalBuffer buf mem) nverts) = Linear.do
+data IndexedMeshOpts = IndexedMeshOpts {
+  indexCount :: Maybe Word32
+  , firstIndex :: Word32
+  , instanceCount :: Word32
+  , firstInstance :: Word32
+  , vertexOffset :: Int32
+  }
+
+drawVertexBuffer :: Linear.MonadIO m => IORef SimpleMeshOpts -> VertexBuffer ⊸ RenderPassCmdM m VertexBuffer
+drawVertexBuffer o (VertexBuffer (DeviceLocalBuffer buf mem) nv) = Linear.do
+  Ur o' <- Linear.liftSystemIOU $ readIORef o
+  let nverts = fromMaybe nv o'.vertexCount
   let offsets = V.make 0
   buffers' <- bindVertexBuffers 0 (V.make buf :: V.V 1 Vk.Buffer) offsets
-  draw nverts
+  draw (fromMaybe nverts o'.vertexCount) o'.firstVertex o'.instanceCount o'.firstInstance
   pure (VertexBuffer (DeviceLocalBuffer (V.elim (\x -> x) buffers') mem) nverts)
 
-drawVertexBufferIndexed :: Linear.MonadIO m => VertexBuffer ⊸ Index32Buffer ⊸ RenderPassCmdM m (VertexBuffer, Index32Buffer)
-drawVertexBufferIndexed (VertexBuffer (DeviceLocalBuffer vbuf mem) nverts) (Index32Buffer (DeviceLocalBuffer ibuf imem) nixs) = Linear.do
+drawVertexBufferIndexed :: Linear.MonadIO m => IORef IndexedMeshOpts -> VertexBuffer ⊸ Index32Buffer ⊸ RenderPassCmdM m (VertexBuffer, Index32Buffer)
+drawVertexBufferIndexed o (VertexBuffer (DeviceLocalBuffer vbuf mem) nverts) (Index32Buffer (DeviceLocalBuffer ibuf imem) nix) = Linear.do
+  (Ur o') <- Linear.liftSystemIOU $ readIORef o
+  let nixs = fromMaybe nix o'.indexCount
   let offsets = V.make 0
   buffers' <- bindVertexBuffers 0 (V.make vbuf) offsets
   ibuf'    <- bindIndex32Buffer ibuf 0
-  drawIndexed nixs
+  drawIndexed nixs o'.firstIndex o'.instanceCount o'.firstInstance o'.vertexOffset
   pure ( VertexBuffer (DeviceLocalBuffer (V.elim (\x -> x) buffers') mem) nverts
        , Index32Buffer (DeviceLocalBuffer ibuf' imem) nixs
        )

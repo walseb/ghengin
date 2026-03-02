@@ -133,7 +133,7 @@ newPlanetMesh rp Planet{..} = Linear.do
 
       minmax = MinMax (P.minimum elevations) (P.maximum elevations)
 
-   in (, Ur minmax) <$> createMeshWithIxsSV rp (DynamicBinding (Ur mempty) :## GHNil) (V.convert planetVs) (SV.map fromIntegral is)
+   in (\(a, b, Ur _) -> (a, b), Ur minmax) <$> createMeshWithIxsSV rp (DynamicBinding (Ur mempty) :## GHNil) (V.convert planetVs) (SV.map fromIntegral is)
 
 --------------------------------------------------------------------------------
 -- * Material
