@@ -26,6 +26,7 @@ import Geomancy.Vec2
 import Geomancy.Vec3
 import Geomancy.Vec4
 import Geomancy.Mat4
+import Geomancy.Transform
 import Math.Linear (M, V)
 
 -- | The class which powers all of the serialization and compatibility logic
@@ -141,6 +142,9 @@ instance ShaderData Vec4 where
 
 instance ShaderData Mat4 where
   type FirType Mat4 = M 4 4 Float
+
+instance ShaderData Transform where
+  type FirType Transform = M 4 4 Float
 
 -- FIR Vector
 instance (KnownNat n, Storable x, Block x) => Block (V n x) where
