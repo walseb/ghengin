@@ -10,10 +10,18 @@ packages:
           /home/admin/root/dep/hs-root/dep/essence-of-live-coding/essence-of-live-coding/
           /home/admin/root/dep/hs-root/dep/fir
           /home/admin/root/dep/hs-root/dep/hydraulics
-          /home/admin/root/dep/hs-root/dep/softfloat-hs/
+          /home/admin/root/dep/hs-root/dep/ghengin/ghengin-core
+          /home/admin/root/dep/hs-root/dep/ghengin/ghengin
+          /home/admin/root/dep/hs-root/dep/ghengin/linear-utils/
           /home/admin/root/dep/hs-root/dep/reference-counting/
           /home/admin/root/dep/hs-root/dep/hiedb-plugin/
           /home/admin/root/dep/hs-root/dep/geomancy
+          /home/admin/root/dep/hs-root/dep/gjk
+          /home/admin/root/dep/hs-root/dep/rhine/rhine
+          /home/admin/root/dep/hs-root/dep/rhine/time-domain
+          /home/admin/root/dep/hs-root/dep/rhine/monad-schedule
+          /home/admin/root/dep/hs-root/dep/rhine/automaton
+          /home/admin/root/dep/hs-root/dep/gl-block
 -------------------------------
 -- DEBUG PATCHES
 -------------------------------
