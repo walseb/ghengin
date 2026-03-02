@@ -92,7 +92,7 @@ main = do
     -- have to be compatible, and it turns out in this shader pipeline every
     -- empty material is compatible. this explicitness is good...
     (emptyMat, pipeline) <- (material GHNil pipeline ↑)
-    (mesh, pipeline)     <- (createMeshWithIxs pipeline GHNil viewportVertices viewportIndices ↑)
+    (mesh, pipeline, Ur _)     <- (createMeshWithIxs pipeline GHNil viewportVertices viewportIndices ↑)
     (rq, Ur pkey)        <- pure (insertPipeline pipeline LMon.mempty)
     (rq, Ur mkey)        <- pure (insertMaterial pkey emptyMat rq)
     (rq, Ur mshkey)      <- pure (insertMesh mkey mesh rq)

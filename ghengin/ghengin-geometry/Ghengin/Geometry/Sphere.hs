@@ -6,10 +6,11 @@
 module Ghengin.Geometry.Sphere where
 
 import Prelude
-import Ghengin.Core.Prelude (GHList(..), Int32)
+import Ghengin.Core.Prelude (GHList(..), Int32, Ur(..))
 import Control.Monad
 import Geomancy.Vec3
 
+import Data.IORef
 import Ghengin.Core.Type.Compatible
 import Ghengin.Core.Renderer
 import Ghengin.Core.Render.Pipeline
@@ -87,7 +88,7 @@ newUnitCubeSphereFace topf res =
 newCubeSphereMesh :: (CompatibleMesh '[] π, CompatibleVertex [Vec3, Vec3] π)
               => RenderPipeline π bs
               -> Int -- ^ Resolution
-              -> Renderer (Mesh [Vec3, Vec3] '[], RenderPipeline π bs)
+              -> Renderer (Mesh [Vec3, Vec3] '[], RenderPipeline π bs, Ur (IORef IndexedMeshOpts))
 newCubeSphereMesh pi res =
   let UnitSphere vs is = newUnitCubeSphere res
    in createMeshWithIxsSV pi GHNil vs is

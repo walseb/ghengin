@@ -296,12 +296,12 @@ writePropertiesToResources rmap' fi
 
 renderMesh :: (Functor m, MonadIO m) => Mesh vs a ⊸ RenderPassCmdM m (Mesh vs a)
 renderMesh = \case
-  SimpleMesh vb ds uq -> Linear.do
-    vb' <- drawVertexBuffer vb
-    return $ SimpleMesh vb' ds uq
-  IndexedMesh vb ib ds uq -> Linear.do
-    (vb', ib') <- drawVertexBufferIndexed vb ib
-    return $ IndexedMesh vb' ib' ds uq
+  SimpleMesh vb ds uq opt -> Linear.do
+    vb' <- drawVertexBuffer opt vb
+    return $ SimpleMesh vb' ds uq opt
+  IndexedMesh vb ib ds uq opt -> Linear.do
+    (vb', ib') <- drawVertexBufferIndexed opt vb ib
+    return $ IndexedMesh vb' ib' ds uq opt
   MeshProperty p xs -> MeshProperty p <$> renderMesh xs
 
 getGraphicsPipeline :: ∀ α info. RenderPipeline info α ⊸ (RendererPipeline Graphics, RendererPipeline Graphics ⊸ RenderPipeline info α)

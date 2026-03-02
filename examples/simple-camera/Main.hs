@@ -80,7 +80,7 @@ main = do
     (rp1, rp2) <- Alias.share =<< createSimpleRenderPass
     pipeline <- makeRenderPipeline rp1 shaderPipeline (StaticBinding (Ur defaultCamera) :## GHNil)
     (emptyMat, pipeline) <- material GHNil pipeline
-    (mesh :: CubeMesh, pipeline) <-
+    (mesh :: CubeMesh, pipeline, Ur _) <-
       -- Also displays how TH can be used to create procedural meshes at compile time when the parameters are statically known
       createMesh pipeline (DynamicBinding (Ur (rotateY (pi/4))) :## GHNil) ($$(TH.liftTyped coloredCube))
     (rq, Ur pkey)    <- pure (insertPipeline pipeline LMon.mempty)

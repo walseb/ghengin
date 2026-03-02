@@ -80,7 +80,7 @@ main = do
                    rp1 shaderPipeline (StaticBinding (Ur myCamera) :## GHNil)
     (emptyMat, pipeline) <- material GHNil pipeline
 
-    (mesh :: Points, pipeline) <-
+    (mesh :: Points, pipeline, Ur _) <-
       createMesh pipeline GHNil start_points
 
     (rq, Ur pkey)    <- pure (insertPipeline pipeline LMon.mempty)

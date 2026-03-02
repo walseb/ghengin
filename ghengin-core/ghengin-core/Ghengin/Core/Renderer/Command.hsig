@@ -1,3 +1,4 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 signature Ghengin.Core.Renderer.Command where
 
 import Ghengin.Core.Prelude
@@ -45,6 +46,22 @@ instance Linear.MonadIO m     => Linear.MonadIO (RenderPassCmdM m)
 instance HasLogger m          => HasLogger (RenderPassCmdM m)
 instance Linear.MonadTrans RenderPassCmdM
 
+data SimpleMeshOpts = SimpleMeshOpts {
+  -- Nothing means use the vertex count of the mesh
+  vertexCount :: Maybe Word32
+  , firstVertex :: Word32
+  , instanceCount :: Word32
+  , firstInstance :: Word32
+  }
+
+data IndexedMeshOpts = IndexedMeshOpts {
+  indexCount :: Maybe Word32
+  , firstIndex :: Word32
+  , instanceCount :: Word32
+  , firstInstance :: Word32
+  , vertexOffset :: Int32
+  }
+
 -- the command buffer comes from the leaky
 recordCommand :: Linear.MonadIO m => Int {-^ Current frame index -} -> CommandBuffer ⊸ CommandM m a ⊸ m (a, CommandBuffer)
 
@@ -52,10 +69,10 @@ renderPassCmd :: Linear.MonadIO m => Vk.Extent2D -> Alias.Alias m RenderPass ⊸
 
 -- TODO: Cleanup the API
 
-drawVertexBuffer :: Linear.MonadIO m => VertexBuffer ⊸ RenderPassCmdM m VertexBuffer
-drawVertexBufferIndexed :: Linear.MonadIO m => VertexBuffer ⊸ Index32Buffer ⊸ RenderPassCmdM m (VertexBuffer, Index32Buffer)
-draw :: Linear.MonadIO m => Word32 -> RenderPassCmd m
-drawIndexed :: Linear.MonadIO m => Word32 -> RenderPassCmd m
+drawVertexBuffer :: Linear.MonadIO m => IORef SimpleMeshOpts -> VertexBuffer ⊸ RenderPassCmdM m VertexBuffer
+drawVertexBufferIndexed :: Linear.MonadIO m => IORef IndexedMeshOpts -> VertexBuffer ⊸ Index32Buffer ⊸ RenderPassCmdM m (VertexBuffer, Index32Buffer)
+draw :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> RenderPassCmd m
+drawIndexed :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> Int32 -> RenderPassCmd m
 
 bindGraphicsPipeline :: Linear.MonadIO m => RendererPipeline Graphics ⊸ RenderPassCmdM m (RendererPipeline Graphics)
 

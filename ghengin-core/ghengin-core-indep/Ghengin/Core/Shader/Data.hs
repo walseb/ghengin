@@ -163,8 +163,37 @@ instance (KnownNat n, Storable x, Block x) => Block (V n x) where
   writePacked = write140
 
 instance (KnownNat n, Block x, Storable x) => ShaderData (V n x) where
-  type FirType (V n x) = V n x
+  type FirType (V n x) = V n (FirType x)
 
+-- FIR Array
+-- It's a newtype of the FIR Vector. It differs in that it generates different SPIRV code, allowing for types such as 'Array 50 (M 4 4 Float)', which Vectors don't support (as they only support scalars, meaning Float, Int, etc, not complex types)
+-- See the 'layoutable' function in FIR.Layout for more information, as well as the SPIRV docs for Array
+-- WARNING: Because the layoutable function seems to has some funky alignment code depending for arrays, deriving the storable instance of Vector like this might not be correct, but it seems to work fine.
+deriving anyclass instance (Generic a) => Generic (FIR.Array n a)
+deriving newtype instance (Storable a, KnownNat n) => Storable (FIR.Array n a)
+
+instance (KnownNat n, Storable x, Block x) => Block (FIR.Array n x) where
+  type PackedSize (FIR.Array n x) = n * (PackedSize x)
+  isStruct _ = False
+
+  alignment140 _ = Store.alignment (undefined :: FIR.Array n x)
+  alignment430 = alignment140
+
+  sizeOf140 _ = Store.sizeOf (undefined :: FIR.Array n x)
+  sizeOf430 = sizeOf140
+  sizeOfPacked = sizeOf140
+
+  read140 p o = liftIO $ peekDiffOff p o
+  read430 = read140
+  readPacked = read140
+
+  write140 p o a = liftIO $ pokeDiffOff p o a
+  write430 = write140
+  writePacked = write140
+
+instance (KnownNat n, Storable x, Block x) => ShaderData (FIR.Array n x) where
+  type FirType (FIR.Array n x) = FIR.Array n (FirType x)
+  
 -- FIR Matrix
 instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
   type PackedSize (M m n x) = m * n * (PackedSize x)
@@ -186,4 +215,4 @@ instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
   writePacked = write140
 
 instance (KnownNat m, KnownNat n, Block x, Storable x) => ShaderData (M m n x) where
-  type FirType (M m n x) = M m n x
+  type FirType (M m n x) = M m n (FirType x)
