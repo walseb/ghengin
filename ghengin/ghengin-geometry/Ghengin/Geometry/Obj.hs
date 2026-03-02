@@ -39,7 +39,7 @@ loadObjMesh :: (CompatibleMesh ts π, CompatibleVertex '[Vec3, Vec3] π)
              ⊸ PropertyBindings ts
             -- ^ These must NOT be added after creating the mesh.
             -- The property bindings need to set when creating it.
-             ⊸ Renderer (Mesh '[Vec3, Vec3] ts, RenderPipeline π ps)
+             ⊸ Renderer (Mesh '[Vec3, Vec3] ts, RenderPipeline π ps, Ur (IORef SimpleMeshOpts))
 loadObjMesh filepath rp props = Linear.do
   Linear.liftSystemIOU (loadObjFile filepath) Linear.>>= \case
     Linear.Ur (Left err) -> Linear.do
@@ -56,7 +56,7 @@ createObjMesh :: (CompatibleMesh ts π, CompatibleVertex '[Vec3, Vec3] π)
                ⊸ PropertyBindings ts
               -- ^ These must NOT be added after creating the mesh.
               -- The property bindings need to set when creating it.
-               ⊸ Renderer (Mesh '[Vec3, Vec3] ts, RenderPipeline π ps)
+               ⊸ Renderer (Mesh '[Vec3, Vec3] ts, RenderPipeline π ps, Ur (IORef SimpleMeshOpts))
 createObjMesh wavefrontObj rp props =
   let
       locs    = V.map getLoc    $ wavefrontObj.objLocations
