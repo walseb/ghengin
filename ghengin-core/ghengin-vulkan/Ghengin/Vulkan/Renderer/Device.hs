@@ -8,6 +8,8 @@
 {-# LANGUAGE QualifiedDo #-}
 module Ghengin.Vulkan.Renderer.Device where
 
+import qualified Debug.Trace as Tr 
+
 import Prelude hiding (($))
 import Prelude.Linear (($))
 import Data.Ord
@@ -90,7 +92,10 @@ pickPhysicalDevice inst rateFn = do
     [] -> fail "Failed to find GPUs with Vulkan support!"
     _  ->
       L.sortOn (Down . fst) . V.toList . V.filter (isJust . fst) . (`V.zip` dvs) <$> traverse rateFn dvs >>= \case
-        (Just (_,graphicsQF,presentQF),device):_ -> pure (device, graphicsQF, presentQF)
+        (Just (_,graphicsQF,presentQF),device):_ -> do
+          props <- Vk.getPhysicalDeviceProperties device
+          Tr.trace ("Selected dev: " ++ show props) (pure ())
+          pure (device, graphicsQF, presentQF)
         (Nothing,_):_ -> fail "Impossible! Failed to find a suitable GPU!"
         [] -> fail "Failed to find a suitable GPU!"
 

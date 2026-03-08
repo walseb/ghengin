@@ -22,6 +22,8 @@ module Ghengin.Vulkan.Renderer
   )
   where
 
+import qualified Debug.Trace as Tr 
+
 -- For re-exports
 import Ghengin.Vulkan.Renderer.Texture
 import Ghengin.Vulkan.Renderer.Sampler
@@ -272,7 +274,7 @@ rateFn surface d = do
   queueFamilies <- findQueueFamilies d surface
 
   Prelude.pure $ do
-    let s1 = if props.deviceType Prelude.== Vk.PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+    let s1 = if Tr.trace ("device analyzed: " ++ show props) (props.deviceType Prelude.== Vk.PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
                then 1000 else 0
 
         s2 = props.limits.maxImageDimension2D
