@@ -138,6 +138,7 @@ library
                       containers,
                       mtl,
                       vector >= 0.13,
+                      vector-sized,
                       generics-sop,
 
                       gl-block,
@@ -190,6 +191,7 @@ library backend-independent-bits
                       template-haskell,
                       containers,
                       vector,
+                      vector-sized,
                       bytestring,
 
                       fast-logger,
@@ -259,6 +261,7 @@ library vulkan
                       bytestring,
                       mtl,
                       vector,
+                      vector-sized,
                       linear-utils
 
     -- Until #23322 is fixed?

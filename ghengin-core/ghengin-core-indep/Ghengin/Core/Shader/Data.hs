@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuantifiedConstraints, DeriveAnyClass, UndecidableInstances #-}
 -- | This module defines the main class which powers all of the serialization
 -- and compatibility logic between CPU and GPU data types.
@@ -12,12 +13,18 @@ import Prelude
 import GHC.TypeLits
 import GHC.Generics
 import Data.Kind
-import Graphics.Gl.Block
+import Graphics.Gl.Block as Bl
 import qualified FIR as FIR
+import FIR (Array)
 import FIR.Layout as L
 
 import Foreign.Storable as Store
-import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff)
+import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff, Diff(Diff))
+import qualified Data.Vector.Sized as V
+import qualified Data.Vector as Vu
+import Foreign.Ptr (plusPtr, castPtr, Ptr)
+import Data.Maybe (fromMaybe)
+import Data.Proxy
 import Control.Monad.IO.Class (liftIO)
 
 import Data.Word (Word16, Word32)
@@ -27,7 +34,9 @@ import Geomancy.Vec3
 import Geomancy.Vec4
 import Geomancy.Mat4
 import Geomancy.Transform
-import Math.Linear (M, V)
+import Math.Linear (M, V, unfold)
+import Control.Monad.IO.Class
+import qualified Data.Vector.Generic as VG
 
 -- | The class which powers all of the serialization and compatibility logic
 -- between CPU and GPU data types.
@@ -146,16 +155,48 @@ instance ShaderData Mat4 where
 instance ShaderData Transform where
   type FirType Transform = M 4 4 Float
 
--- FIR Vector
+
+-- -- FIR Vector
+-- instance (KnownNat n, Block x) => Block (V n x) where
+--   type PackedSize (V n x) = n * (PackedSize x)
+--   isStruct _ = FIR.False
+
+--   alignment140 _ = alignment140 (Proxy @x)
+--   alignment430 _ = alignment430 (Proxy @x)
+
+--   sizeOf140 _ = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x)) * n
+--     where n = fromIntegral $ natVal (Proxy @n)
+--   sizeOf430 _ = Bl.roundUp (sizeOf430 (Proxy :: Proxy x)) (alignment430 (Proxy :: Proxy x)) * n
+--     where n = fromIntegral $ natVal (Proxy @n)
+--   sizeOfPacked = sizeOf140
+
+--   read140 p (Diff o) =
+--     liftIO $ traverse (\o -> (read140 p (Diff o))) ixVec
+--           where ixVec :: V n Int
+--                 ixVec = unfold pred (fromIntegral $ natVal (Proxy @n))
+--   read430 = read140
+--   readPacked = read140
+
+--   write140 p o a =
+--     liftIO $ do
+--       traverse ((\o -> ((write140 p (Diff o) a) >> pure ()))) ixVec
+--       pure ()
+--           where ixVec :: V n Int
+--                 ixVec = unfold pred (fromIntegral $ natVal (Proxy @n))
+--   write430 = write140
+--   writePacked = write140
+
 instance (KnownNat n, Storable x, Block x) => Block (V n x) where
   type PackedSize (V n x) = n * (PackedSize x)
   isStruct _ = FIR.False
 
-  alignment140 _ = Store.alignment (undefined :: V n x)
-  alignment430 = alignment140
+  alignment140 _ = alignment140 (Proxy @x)
+  alignment430 _ = alignment430 (Proxy @x)
 
-  sizeOf140 _ = Store.sizeOf (undefined :: V n x)
-  sizeOf430 = sizeOf140
+  sizeOf140 _ = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
+  sizeOf430 _ = Bl.roundUp (sizeOf430 (Proxy :: Proxy x)) (alignment430 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
   sizeOfPacked = sizeOf140
 
   read140 p o = liftIO $ peekDiffOff p o
@@ -173,30 +214,69 @@ instance (KnownNat n, Block x, Storable x) => ShaderData (V n x) where
 -- It's a newtype of the FIR Vector. It differs in that it generates different SPIRV code, allowing for types such as 'Array 50 (M 4 4 Float)', which Vectors don't support (as they only support scalars, meaning Float, Int, etc, not complex types)
 -- See the 'layoutable' function in FIR.Layout for more information, as well as the SPIRV docs for Array
 -- WARNING: Because the layoutable function seems to has some funky alignment code depending for arrays, deriving the storable instance of Vector like this might not be correct, but it seems to work fine.
-deriving anyclass instance (Generic a) => Generic (FIR.Array n a)
+deriving anyclass instance (Generic a) => Generic (Array n a)
+-- deriving newtype instance (KnownNat n, Block a) => Block (Array n a) 
+-- deriving via (V n a) instance (KnownNat n, Block a) => Block (Array n a)
+
+
 deriving newtype instance (Storable a, KnownNat n) => Storable (FIR.Array n a)
 
-instance (KnownNat n, Storable x, Block x) => Block (FIR.Array n x) where
+instance (KnownNat n, Block x) => Block (FIR.Array n x) where
   type PackedSize (FIR.Array n x) = n * (PackedSize x)
   isStruct _ = False
 
-  alignment140 _ = Store.alignment (undefined :: FIR.Array n x)
-  alignment430 = alignment140
+  alignment140 _ = alignment140 (Proxy @x)
+  alignment430 _ = alignment430 (Proxy @x)
 
-  sizeOf140 _ = Store.sizeOf (undefined :: FIR.Array n x)
-  sizeOf430 = sizeOf140
+  sizeOf140 _ = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
+  sizeOf430 _ = Bl.roundUp (sizeOf430 (Proxy :: Proxy x)) (alignment430 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
   sizeOfPacked = sizeOf140
 
-  read140 p o = liftIO $ peekDiffOff p o
+  read140 p (Diff o) =
+    liftIO $ traverse (\o' -> ((read140 :: MonadIO m => Ptr a -> Diff a x -> m x) p (Diff (o + o')))) ixVec
+          where ixVec :: Array n Int
+                ixVec = FIR.MkArray (fromMaybe (fromMaybe (error "Impossible!") (V.fromList [])) (V.fromList [0..((fromIntegral $ natVal (Proxy @n)) - 1)]))
   read430 = read140
   readPacked = read140
 
-  write140 p o a = liftIO $ pokeDiffOff p o a
+  -- write140 p (Diff o) a = liftIO $ (Store.poke (p `plusPtr` o)) a
+  write140 p (Diff o) v = liftIO $ Vu.iforM_ (V.fromSized (((FIR.coerce) v) :: V.Vector n x)) \i -> write140 p (Diff (o + i*d)) where
+
+    d = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x))
   write430 = write140
   writePacked = write140
 
-instance (KnownNat n, Storable x, Block x) => ShaderData (FIR.Array n x) where
-  type FirType (FIR.Array n x) = FIR.Array n (FirType x)
+-- instance (KnownNat n, Block x) => Block (Array n x) where
+--   type PackedSize (Array n x) = n * (PackedSize x)
+--   isStruct _ = False
+
+--   alignment140 _ = alignment140 (Proxy @x)
+--   alignment430 = alignment140
+
+--   sizeOf140 _ = sizeOf140 (Proxy @x)
+--   sizeOf430 = sizeOf140
+--   sizeOfPacked = sizeOf140
+
+--   read140 p (Diff o) =
+--     liftIO $ traverse (\o -> (read140 p (Diff o))) ixVec
+--           where ixVec :: Array n Int
+--                 ixVec = FIR.MkArray (fromMaybe (fromMaybe (error "Impossible!") (V.fromList [])) (V.fromList [0..((fromIntegral $ natVal (Proxy @n)) - 1)]))
+--   read430 = read140
+--   readPacked = read140
+
+--   write140 p o a =
+--     liftIO $ do
+--       traverse ((\o -> ((write140 p (Diff o) a) >> pure ()))) ixVec
+--       pure ()
+--           where ixVec :: Array n Int
+--                 ixVec = FIR.MkArray (fromMaybe (fromMaybe (error "Impossible!") (V.fromList [])) (V.fromList [0..((fromIntegral $ natVal (Proxy @n)) - 1)]))
+--   write430 = write140
+--   writePacked = write140
+
+instance (KnownNat n, Storable x, Block x) => ShaderData (Array n x) where
+  type FirType (Array n x) = Array n (FirType x)
   
 -- FIR Matrix
 instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
