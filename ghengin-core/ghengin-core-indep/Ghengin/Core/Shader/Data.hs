@@ -219,7 +219,7 @@ deriving anyclass instance (Generic a) => Generic (Array n a)
 -- deriving via (V n a) instance (KnownNat n, Block a) => Block (Array n a)
 
 
-deriving newtype instance (Storable a, KnownNat n) => Storable (FIR.Array n a)
+-- deriving newtype instance (Storable a, KnownNat n) => Storable (FIR.Array n a)
 
 instance (KnownNat n, Block x) => Block (FIR.Array n x) where
   type PackedSize (FIR.Array n x) = n * (PackedSize x)
@@ -275,7 +275,7 @@ instance (KnownNat n, Block x) => Block (FIR.Array n x) where
 --   write430 = write140
 --   writePacked = write140
 
-instance (KnownNat n, Storable x, Block x) => ShaderData (Array n x) where
+instance (KnownNat n, Block x) => ShaderData (Array n x) where
   type FirType (Array n x) = Array n (FirType x)
   
 -- FIR Matrix
