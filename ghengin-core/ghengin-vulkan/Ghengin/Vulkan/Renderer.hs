@@ -275,7 +275,10 @@ rateFn surface d = do
 
   Prelude.pure $ do
     let s1 = if Tr.trace ("device analyzed: " ++ show props) (props.deviceType Prelude.== Vk.PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-               then 1000 else 0
+               then 1000
+               else if props.deviceType Prelude.== Vk.PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+                    then 500
+                    else 0
 
         s2 = props.limits.maxImageDimension2D
 

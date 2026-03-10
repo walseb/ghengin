@@ -21,26 +21,24 @@ flag dev
 
 common common-flags
 
-  if flag(dev)
-    ghc-options:
-        -fno-ignore-asserts
-        -- -dasm-lint
-        -- -dcmm-lint
-        -- -dstg-lint
-        -- -g3
-        -- -rtsopts -debug
-        -- -fcheck-prim-bounds
-        -- -fcmm-thread-sanitizer
+  -- ghc-options:
+  --     -fno-ignore-asserts
+  --     -- -dasm-lint
+  --     -- -dcmm-lint
+  --     -- -dstg-lint
+  --     -- -g3
+  --     -- -rtsopts -debug
+  --     -- -fcheck-prim-bounds
+  --     -- -fcmm-thread-sanitizer
 
-    cpp-options:
-        -- -DDEBUG
-        -- -DDEBUG_TRACE
-        -- -DTHINGS_ARE_GOING_THAT_BAD
-        -- -DDEBUG_WRITE_SHADERS
+  -- cpp-options:
+  --     -DDEBUG
+  --     -DDEBUG_TRACE
+  --     -DTHINGS_ARE_GOING_THAT_BAD
+      -- -DDEBUG_WRITE_SHADERS
 
-  else
-    ghc-options: -O2 -threaded
-    cc-options: -O2
+  ghc-options: -O2 -threaded
+  cc-options: -O2
 
   ghc-options:
     -Wall
