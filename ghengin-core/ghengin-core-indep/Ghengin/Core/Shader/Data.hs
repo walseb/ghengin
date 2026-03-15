@@ -155,7 +155,6 @@ instance ShaderData Mat4 where
 instance ShaderData Transform where
   type FirType Transform = M 4 4 Float
 
-
 -- -- FIR Vector
 -- instance (KnownNat n, Block x) => Block (V n x) where
 --   type PackedSize (V n x) = n * (PackedSize x)
@@ -186,7 +185,7 @@ instance ShaderData Transform where
 --   write430 = write140
 --   writePacked = write140
 
-instance (KnownNat n, Storable x, Block x) => Block (V n x) where
+instance (KnownNat n, Storable x, Block x, KnownNat (PackedSize x)) => Block (V n x) where
   type PackedSize (V n x) = n * (PackedSize x)
   isStruct _ = FIR.False
 
@@ -221,7 +220,7 @@ deriving anyclass instance (Generic a) => Generic (Array n a)
 
 -- deriving newtype instance (Storable a, KnownNat n) => Storable (FIR.Array n a)
 
-instance (KnownNat n, Block x) => Block (FIR.Array n x) where
+instance (KnownNat n, Block x, KnownNat (PackedSize x)) => Block (FIR.Array n x) where
   type PackedSize (FIR.Array n x) = n * (PackedSize x)
   isStruct _ = False
 
@@ -279,7 +278,7 @@ instance (KnownNat n, Block x) => ShaderData (Array n x) where
   type FirType (Array n x) = Array n (FirType x)
   
 -- FIR Matrix
-instance (KnownNat m, KnownNat n, Storable x, Block x) => Block (M m n x) where
+instance (KnownNat m, KnownNat n, Storable x, Block x, KnownNat (PackedSize x)) => Block (M m n x) where
   type PackedSize (M m n x) = m * n * (PackedSize x)
   isStruct _ = FIR.False
 
