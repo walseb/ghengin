@@ -65,6 +65,7 @@ data GraphicsPipelineSettings = GPS
       { cullMode  :: CullMode
       , blendMode :: BlendMode
       , polygonMode :: PolygonMode
+      , depthStencilInfo :: Vk.PipelineDepthStencilStateCreateInfo
       }
 
 data CullMode = CullBack | CullFront | CullNone
