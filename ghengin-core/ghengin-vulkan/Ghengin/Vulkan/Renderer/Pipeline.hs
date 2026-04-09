@@ -84,6 +84,7 @@ data GraphicsPipelineSettings = GPS
       { cullMode  :: CullMode
       , blendMode :: BlendMode
       , polygonMode :: PolygonMode
+      , depthStencilInfo :: Vk.PipelineDepthStencilStateCreateInfo
       }
 
 data CullMode = CullBack | CullFront | CullNone
@@ -97,8 +98,26 @@ data PolygonMode = PolygonFill
                  | PolygonPoint
                  -- ^ polygon vertices are drawn as points
 
+data DepthTest = Enabled | Disabled
+
 defaultGraphicsPipelineSettings :: GraphicsPipelineSettings
 defaultGraphicsPipelineSettings = GPS CullBack BlendNone PolygonFill
+  (Vk.PipelineDepthStencilStateCreateInfo
+                        { flags = zero
+                        , depthTestEnable = True
+                        , depthWriteEnable = True
+                        , depthCompareOp = Vk.COMPARE_OP_GREATER
+                        
+                        -- For the optional depth bound testing. Unused for now
+                        , depthBoundsTestEnable = False
+                        , minDepthBounds = 0
+                        , maxDepthBounds = 1
+
+                        -- Currently not using stencil testing
+                        , stencilTestEnable = False
+                        , front = zero
+                        , back  = zero
+                        })
 
 --------------------------------------------------------------------------------
 
@@ -259,23 +278,7 @@ createGraphicsPipeline gps ppstages pushConstantRanges = Unsafe.toLinearN @2 \dp
                         , blendConstants = (0,0,0,0)
                         }
 
-    depthStencilInfo  = Vk.PipelineDepthStencilStateCreateInfo
-                        { flags = zero
-                        , depthTestEnable = True
-                        , depthWriteEnable = True
-                        , depthCompareOp = Vk.COMPARE_OP_GREATER
-                        
-                        -- For the optional depth bound testing. Unused for now
-                        , depthBoundsTestEnable = False
-                        , minDepthBounds = 0
-                        , maxDepthBounds = 1
-
-                        -- Currently not using stencil testing
-                        , stencilTestEnable = False
-                        , front = zero
-                        , back  = zero
-                        }
-
+    depthStencilInfo  = gps.depthStencilInfo
 
     -- In this config we can specify uniform values and push constants (other
     -- way of passing dynamic values to shaders)
