@@ -97,15 +97,3 @@ instance Lift x => Lift (Vertex '[x]) where
 instance (Lift (Vertex (y : xs)), Lift x) => Lift (Vertex (x : y : xs)) where
     lift (x :& xs) = [| $(lift x) :& $(lift xs) |]
     liftTyped (x :& xs) = [|| $$(liftTyped x) :& $$(liftTyped xs) ||]
-
---------------------------------------------------------------------------------
--- Orphans
---------------------------------------------------------------------------------
-
-instance Lift Vec3 where
-    lift (WithVec3 a b c) = [| vec3 $(lift a) $(lift b) $(lift c) |]
-    liftTyped (WithVec3 a b c) = [|| vec3 $$(liftTyped a) $$(liftTyped b) $$(liftTyped c) ||]
-
-instance Lift Vec2 where
-    lift (WithVec2 a b) = [| vec2 $(lift a) $(lift b) |]
-    liftTyped (WithVec2 a b) = [|| vec2 $$(liftTyped a) $$(liftTyped b) ||]
