@@ -22,8 +22,14 @@ import Data.IntMap.Internal (IntMap(..))
 import qualified Data.IntMap.Internal as IM
 
 import Data.IntSet.Internal (Key)
+import qualified Data.IntSet.Internal.IntTreeCommons as ITC
 
 import Unsafe.Linear
+
+
+-- Hmm, I'm not sure about this.
+instance Consumable ITC.Prefix where
+  consume = toLinear \_ -> ()
 
 
 insert :: Key %p -> a ⊸ IntMap a ⊸ IntMap a
@@ -79,9 +85,9 @@ traverseWithKey f = toLinear go
   where
     go Nil = pure Nil
     go (Tip k v) = Tip k <$> f k v
-    go (Bin p m l r)
-      | m < 0     = liftA2 (flip (Bin p m)) (go r) (go l)
-      | otherwise = liftA2 (Bin p m) (go l) (go r)
+    go (Bin p l r)
+      | ITC.signBranch p = liftA2 (flip (Bin p)) (go r) (go l)
+      | otherwise        = liftA2 (Bin p) (go l) (go r)
 {-# INLINE traverseWithKey #-}
 
 size :: IntMap a ⊸ (Ur Int, IntMap a)
@@ -89,7 +95,7 @@ size = toLinear \im -> (Ur $ IM.size im, im)
 
 instance {-# OVERLAPPABLE #-} Consumable a => Consumable (IntMap a) where
   consume = \case
-    Bin p m im1 im2 -> consume (p,m,im1,im2)
+    Bin p im1 im2 -> consume (p,im1,im2)
     Tip k a -> consume (k,a)
     Nil -> ()
 
@@ -106,10 +112,9 @@ instance Data.Linear.Traversable IntMap where
       go :: IntMap a %1 -> t (IntMap b)
       go IM.Nil = Data.Linear.pure IM.Nil
       go (IM.Tip k v) = toLinear (\k' -> IM.Tip k' Data.Linear.<$> f v) k
-      go bin = toLinear (\(IM.Bin p m l r) ->
-          if m < 0
-             then Data.Linear.liftA2 (flip (IM.Bin p m)) (go r) (go l)
-             else Data.Linear.liftA2 (IM.Bin p m) (go l) (go r)
-        ) bin
+      go bin = toLinear step bin
+      step (IM.Bin p l r)
+        | ITC.signBranch p = Data.Linear.liftA2 (flip (IM.Bin p)) (go r) (go l)
+        | otherwise        = Data.Linear.liftA2 (IM.Bin p) (go l) (go r)
+      step _ = Prelude.error "Data.IntMap.Linear.traverse: expected Bin"
   {-# INLINE traverse #-}
-

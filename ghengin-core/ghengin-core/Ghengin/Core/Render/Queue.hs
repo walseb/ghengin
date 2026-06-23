@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE TypeAbstractions #-}
 {-|
 Note [Render Queue]
 ~~~~~~~~~~~~~~~~~~~

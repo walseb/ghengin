@@ -10,6 +10,7 @@
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TypeAbstractions #-}
 module Ghengin.Vulkan.Renderer.RenderPass where
 
 -- TODO: eDSL
@@ -179,4 +180,3 @@ destroyFramebuffers dev fb = Linear.do
 
 destroyFramebuffer :: MonadIO m => Vk.Framebuffer ⊸ Vk.Device ⊸ m Vk.Device
 destroyFramebuffer = Unsafe.toLinear2 $ \fb dev -> dev <$ liftSystemIO (Vk.destroyFramebuffer dev fb Nothing)
-

@@ -1,6 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeAbstractions #-}
 module Ghengin.Core.Shader.Pipeline
   ( ShaderPipeline(ShaderPipeline, (:>->))
 
@@ -35,4 +36,3 @@ pattern (:>->) :: ∀ {info :: FIR.PipelineInfo}
                -> ShaderPipeline info
 pattern (:>->) x y <- ShaderPipeline ((FIR.:>->) @_ @(_ :: FIR.PipelineInfo) @() (coerce -> x) (y, ()))
   where (:>->) x y  = ShaderPipeline ((FIR.:>->) @_ @(_ :: FIR.PipelineInfo) @() (coerce x)    (y, ()))
-

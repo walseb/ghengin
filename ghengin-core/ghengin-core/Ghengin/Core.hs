@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE TypeAbstractions #-}
 
 {-|
 The entry module for ghengin-core, which defines the surface level of Core with
@@ -307,4 +308,3 @@ renderMesh = \case
 getGraphicsPipeline :: ∀ α info. RenderPipeline info α ⊸ (RendererPipeline Graphics, RendererPipeline Graphics ⊸ RenderPipeline info α)
 getGraphicsPipeline (RenderPipeline rpg a b c d) = (rpg, \rg -> RenderPipeline rg a b c d)
 getGraphicsPipeline (RenderProperty p rp) = case getGraphicsPipeline rp of (rg, rpf) -> (rg, \rg' -> RenderProperty p (rpf rg'))
-
