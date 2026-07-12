@@ -301,10 +301,12 @@ bindIndex32Buffer ibuffer offset = unsafeRenderPassCmd ibuffer (\buf ibuf -> Vk.
 {-# INLINE bindIndex32Buffer #-}
 
 draw :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> RenderPassCmd m
+draw _ _ 0 _ = pure ()
 draw vertexCount firstVertex instanceCount firstInstance = unsafeRenderPassCmd_ (\buf -> Vk.cmdDraw buf vertexCount instanceCount firstVertex firstInstance)
 {-# INLINE draw #-}
 
 drawIndexed :: Linear.MonadIO m => Word32 -> Word32 -> Word32 -> Word32 -> Int32 -> RenderPassCmd m
+drawIndexed _ _ 0 _ _ = pure ()
 drawIndexed indexCount firstIndex instanceCount firstInstance vertexOffset = unsafeRenderPassCmd_ $ \buf -> Vk.cmdDrawIndexed buf indexCount instanceCount firstIndex vertexOffset firstInstance
 {-# INLINE drawIndexed #-}
 
@@ -519,4 +521,3 @@ unsafeRenderPassCmd = Unsafe.toLinear \a f -> (RenderPassCmd $ Command $ ReaderT
 
 unsafeRenderPassCmd_ :: Linear.MonadIO m => (Vk.CommandBuffer -> IO ()) -> RenderPassCmd m
 unsafeRenderPassCmd_ = Unsafe.toLinear \f -> (RenderPassCmd $ Command $ ReaderT \CmdInfo{buf} -> Linear.liftSystemIO (f buf))
-

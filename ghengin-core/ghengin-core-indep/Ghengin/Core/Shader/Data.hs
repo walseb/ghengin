@@ -22,6 +22,8 @@ import Foreign.Storable as Store
 import Foreign.Ptr.Diff (pokeDiffOff, peekDiffOff, Diff(Diff))
 import qualified Data.Vector.Sized as V
 import qualified Data.Vector as Vu
+import qualified Data.Vector.Unboxed as VU
+import qualified Data.Vector.Unboxed.Sized as VUS
 import Foreign.Ptr (plusPtr, castPtr, Ptr)
 import Data.Maybe (fromMaybe)
 import Data.Proxy
@@ -276,7 +278,35 @@ instance (KnownNat n, Block x, KnownNat (PackedSize x)) => Block (FIR.Array n x)
 
 instance (KnownNat n, Block x) => ShaderData (Array n x) where
   type FirType (Array n x) = Array n (FirType x)
-  
+
+instance (KnownNat n, VU.Unbox x, Block x, KnownNat (PackedSize x)) => Block (VUS.Vector n x) where
+  type PackedSize (VUS.Vector n x) = n * (PackedSize x)
+  isStruct _ = False
+
+  alignment140 _ = alignment140 (Proxy @x)
+  alignment430 _ = alignment430 (Proxy @x)
+
+  sizeOf140 _ = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
+  sizeOf430 _ = Bl.roundUp (sizeOf430 (Proxy :: Proxy x)) (alignment430 (Proxy :: Proxy x)) * n
+    where n = fromIntegral $ natVal (Proxy @n)
+  sizeOfPacked = sizeOf140
+
+  read140 p (Diff o) = VUS.generateM \i -> read140 p (Diff (o + fromIntegral i*d))
+    where
+      d = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x))
+  read430 = read140
+  readPacked = read140
+
+  write140 p (Diff o) v = liftIO $ VU.iforM_ (VUS.fromSized v) \i -> write140 p (Diff (o + i*d))
+    where
+      d = Bl.roundUp (sizeOf140 (Proxy :: Proxy x)) (alignment140 (Proxy :: Proxy x))
+  write430 = write140
+  writePacked = write140
+
+instance (KnownNat n, VU.Unbox x, Block x) => ShaderData (VUS.Vector n x) where
+  type FirType (VUS.Vector n x) = Array n (FirType x)
+   
 -- FIR Matrix
 instance (KnownNat m, KnownNat n, Storable x, Block x, KnownNat (PackedSize x)) => Block (M m n x) where
   type PackedSize (M m n x) = m * n * (PackedSize x)
